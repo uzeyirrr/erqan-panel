@@ -1,9 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Erqan - Property Rental Management System
+
+A modern property rental management system built with Next.js 15, featuring user authentication, property management, and rental operations.
+
+## Features
+
+- **User Authentication**: Secure login and registration system
+- **Property Management**: Add, edit, and manage rental properties
+- **Dashboard**: Comprehensive overview of properties and rentals
+- **Profile Management**: User profile customization
+- **PWA Support**: Progressive Web App capabilities with offline support
+- **Modern UI**: Built with Shadcn UI components and Tailwind CSS
+- **Real-time Updates**: Live notifications and status updates
+
+## Tech Stack
+
+- **Framework**: Next.js 15 with App Router
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **UI Components**: Shadcn UI with Radix UI primitives
+- **Database**: PocketBase
+- **Icons**: Lucide React
+- **PWA**: Service Worker with offline support
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+ 
+- npm, yarn, pnpm, or bun
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd erqan
+```
+
+2. Install dependencies:
+```bash
+npm install
+# or
+yarn install
+# or
+pnpm install
+```
+
+3. Set up environment variables:
+```bash
+cp .env.example .env.local
+```
+
+4. Start the development server:
 ```bash
 npm run dev
 # or
@@ -14,23 +62,102 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+├── app/                    # Next.js App Router pages
+│   ├── dashboard/         # Dashboard page
+│   ├── login/            # Authentication pages
+│   ├── register/
+│   ├── my-properties/    # Property management
+│   ├── rental-properties/
+│   └── profile/          # User profile
+├── components/           # Reusable UI components
+│   ├── ui/              # Shadcn UI components
+│   ├── Layout.tsx       # Main layout component
+│   ├── Navbar.tsx       # Navigation bar
+│   └── Sidebar.tsx      # Sidebar navigation
+├── contexts/            # React contexts
+│   └── AuthContext.tsx  # Authentication context
+├── hooks/               # Custom React hooks
+│   ├── usePWA.ts       # PWA functionality
+│   └── useSettings.ts   # Settings management
+└── lib/                 # Utility functions
+    ├── pocketbase.ts    # Database connection
+    ├── properties.ts    # Property operations
+    ├── rental-system.ts # Rental management
+    └── utils.ts         # General utilities
+```
 
-## Learn More
+## Available Scripts
 
-To learn more about Next.js, take a look at the following resources:
+- `npm run dev` - Start development server with Turbopack
+- `npm run build` - Build for production
+- `npm run start` - Start production server on port 3005
+- `npm run lint` - Run ESLint
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Features Overview
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Authentication
+- Secure user registration and login
+- Protected routes and middleware
+- Session management with PocketBase
 
-## Deploy on Vercel
+### Property Management
+- Add new rental properties
+- Edit existing property details
+- View property listings
+- Property status tracking
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Dashboard
+- Overview of all properties
+- Rental statistics
+- Quick actions and navigation
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### PWA Features
+- Install as native app
+- Offline functionality
+- Push notifications
+- Service worker caching
+
+## Development
+
+The project uses modern development practices:
+
+- **TypeScript** for type safety
+- **ESLint** for code quality
+- **Tailwind CSS** for styling
+- **Turbopack** for fast development builds
+- **App Router** for file-based routing
+
+## Deployment
+
+### Vercel (Recommended)
+
+1. Connect your repository to Vercel
+2. Configure environment variables
+3. Deploy automatically on push
+
+### Other Platforms
+
+The app can be deployed to any platform that supports Next.js:
+
+- Netlify
+- Railway
+- DigitalOcean App Platform
+- AWS Amplify
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests and linting
+5. Submit a pull request
+
+## License
+
+This project is private and proprietary.
