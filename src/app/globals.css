@@ -148,8 +148,9 @@
   --text-caption2--font-weight: 400;
 
   /*
-   * Köşe yarıçapları (iOS 26): gruplu liste bölümü 26, kart 22, alan 12,
-   * uyarı (alert) 34, sayfa (sheet) 38; butonlar ve sekme çubuğu kapsül (rounded-full).
+   * Köşe yarıçapları: gruplu liste bölümü ve kart 20 (44 pt satır yüksekliğiyle dengeli),
+   * kart içindeki görsel 14 (6 pt içeride, eş merkezli), alan 12, uyarı (alert) 34,
+   * sayfa (sheet) 38; butonlar ve sekme çubuğu kapsül (rounded-full).
    */
   --radius-xs: 6px;
   --radius-sm: 8px;
@@ -157,11 +158,11 @@
   --radius-lg: 12px;
   --radius-xl: 16px;
   --radius-2xl: 20px;
-  --radius-3xl: 26px;
+  --radius-3xl: 24px;
   --radius-4xl: 34px;
   --radius-field: 12px;
-  --radius-card: 22px;
-  --radius-section: 26px;
+  --radius-card: 20px;
+  --radius-section: 20px;
   --radius-alert: 34px;
   --radius-sheet: 38px;
 
