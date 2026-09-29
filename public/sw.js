@@ -3,7 +3,7 @@
 // ağdan gelir (bayat içerik gösterilmez), ağ yoksa offline sayfası gösterilir.
 // API (PocketBase) ayrı bir alan adında olduğu için hiç dokunulmaz.
 
-const VERSION = "erqan-v1"
+const VERSION = "erqan-v2"
 const OFFLINE_URL = "/offline.html"
 
 self.addEventListener("install", (event) => {

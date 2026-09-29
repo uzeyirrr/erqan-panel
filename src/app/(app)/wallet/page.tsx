@@ -2,17 +2,95 @@
 
 import Link from "next/link"
 import { useState } from "react"
-import { ChevronLeft, ChevronRight, Copy, Receipt } from "lucide-react"
+import {
+  ArrowDownLeft,
+  Buildings,
+  CaretLeft,
+  CaretRight,
+  Copy,
+  Gift,
+  Hammer,
+  Key,
+  LockSimple,
+  LockSimpleOpen,
+  Percent,
+  Receipt,
+  ShieldCheck,
+  Sparkle,
+  Storefront,
+  TrendUp,
+  Wallet,
+  Wrench,
+} from "@phosphor-icons/react"
 import { toast } from "sonner"
 import { pb } from "@/lib/pb"
-import { dateTime, money, TX_LABEL } from "@/lib/format"
+import { dateTime, money, signedMoney, toDate, TX_LABEL } from "@/lib/format"
 import type { Offer, Transaction, TransactionKind } from "@/lib/types"
+import { cn } from "@/lib/utils"
 import { useLoad } from "@/hooks/use-data"
 import { useApp } from "@/components/app-provider"
-import { EmptyState, ErrorState, Loading, Money, NativeSelect, PageHeader, Panel, Stat } from "@/components/kit"
+import { Chips, EmptyState, ErrorState, IconTile, Loading, Money, PageHeader, Row, Section } from "@/components/kit"
 import { Button } from "@/components/ui/button"
 
 const PER_PAGE = 30
+
+type IconType = React.ComponentType<{ className?: string; weight?: "regular" | "bold" | "fill" }>
+
+// Hareket türüne göre simge kutucuğu (Cüzdan / Apple Cash hareket listesi).
+const TX_ICON: Record<TransactionKind, { icon: IconType; color: string }> = {
+  purchase: { icon: Storefront, color: "blue" },
+  sale: { icon: Buildings, color: "blue" },
+  rent_pay: { icon: Key, color: "orange" },
+  rent_income: { icon: ArrowDownLeft, color: "green" },
+  sale_income: { icon: TrendUp, color: "green" },
+  build: { icon: Hammer, color: "orange" },
+  upgrade: { icon: Wrench, color: "orange" },
+  offer_hold: { icon: LockSimple, color: "indigo" },
+  offer_release: { icon: LockSimpleOpen, color: "indigo" },
+  referral_bonus: { icon: Gift, color: "pink" },
+  signup_bonus: { icon: Sparkle, color: "pink" },
+  commission: { icon: Percent, color: "gray" },
+  admin_adjust: { icon: ShieldCheck, color: "purple" },
+}
+
+const FILTERS: { value: TransactionKind | ""; label: string }[] = [
+  { value: "", label: "Tümü" },
+  ...(Object.keys(TX_LABEL) as TransactionKind[])
+    .filter((k) => k !== "commission")
+    .map((k) => ({ value: k, label: TX_LABEL[k] })),
+]
+
+function sameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+}
+
+/** Gün başlığı: Bugün, Dün veya "27 Eylül Pazar" (başka yılsa yıl eklenir). */
+function dayLabel(d: Date) {
+  const now = new Date()
+  const yesterday = new Date(now)
+  yesterday.setDate(now.getDate() - 1)
+  if (sameDay(d, now)) return "Bugün"
+  if (sameDay(d, yesterday)) return "Dün"
+  return d.toLocaleDateString("tr-TR", {
+    day: "numeric",
+    month: "long",
+    weekday: "long",
+    ...(d.getFullYear() !== now.getFullYear() ? { year: "numeric" } : {}),
+  })
+}
+
+/** Hareketleri güne göre gruplar (liste zaten yeniden eskiye sıralı). */
+function groupByDay(items: Transaction[]) {
+  const groups: { key: string; label: string; items: Transaction[] }[] = []
+  for (const t of items) {
+    const d = toDate(t.created)
+    const key = d ? d.toDateString() : ""
+    const last = groups[groups.length - 1]
+    if (last && last.key === key) last.items.push(t)
+    else groups.push({ key, label: d ? dayLabel(d) : "", items: [t] })
+  }
+  return groups
+}
 
 export default function WalletPage() {
   const { user, currency, config } = useApp()
@@ -47,143 +125,143 @@ export default function WalletPage() {
   const inviteUrl =
     typeof window !== "undefined" && user ? `${window.location.origin}/register?ref=${user.referral_code}` : ""
   const data = txs.data
+  const heldCount = held.data?.count || 0
+
+  const heldContent = (
+    <>
+      <LockSimple weight="fill" className="size-5 shrink-0 opacity-90" />
+      <span className="min-w-0 flex-1">
+        <span className="block text-footnote font-medium opacity-85">Tekliflerde bloke</span>
+        <span className="block truncate text-headline tabular-nums">{money(held.data?.total, currency)}</span>
+      </span>
+      <span className="shrink-0 text-footnote font-medium opacity-85">
+        {heldCount > 0 ? `${heldCount} bekleyen teklif` : "Bekleyen teklif yok"}
+      </span>
+      {heldCount > 0 && <CaretRight weight="bold" className="size-3.5 shrink-0 opacity-70" />}
+    </>
+  )
+  const heldCls = "flex items-center gap-3 rounded-[16px] bg-white/18 px-3.5 py-2.5 backdrop-blur-md"
 
   return (
     <>
       <PageHeader title="Cüzdan" description="Bakiyeniz ve tüm kredi hareketleriniz." />
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <section className="min-w-0 rounded-xl border bg-card p-5 lg:col-span-2">
-          <div className="grid grid-cols-2 gap-5">
-            <Stat label="Kullanılabilir bakiye" value={money(user?.credit, currency)} />
-            <Stat
-              label="Tekliflerde bloke"
-              value={money(held.data?.total, currency)}
-              hint={
-                held.data && held.data.count > 0 ? (
-                  <Link href="/offers" className="text-primary hover:underline">
-                    {held.data.count} bekleyen teklif
-                  </Link>
-                ) : (
-                  "Bekleyen teklif yok"
-                )
-              }
-            />
-          </div>
-          <p className="mt-5 max-w-prose type-body-medium text-muted-foreground">
-            Şu an kredi yükleme yok. Hesabınıza kredi yöneticiler tarafından eklenir; kira ve satış gelirleriniz otomatik
-            olarak bakiyenize geçer.
-          </p>
-        </section>
-
-        {referralOn && config && user && (
-          <Panel title="Davet kodunuz">
-            <div className="rounded-lg border border-dashed px-3 py-2 text-center type-title-large">
-              {user.referral_code}
-            </div>
-            <Button
-              variant="outline"
-              className="mt-3 w-full"
-              onClick={() => navigator.clipboard.writeText(inviteUrl).then(() => toast.success("Davet bağlantısı kopyalandı."))}
+      <div className="grid gap-8 lg:grid-cols-[360px_minmax(0,1fr)] lg:items-start">
+        <div className="grid min-w-0 gap-8">
+          <div>
+            {/* Bakiye kartı (Apple Cash dili, kart oranında) */}
+            <section
+              aria-label="Bakiye"
+              className="flex aspect-[1.586] flex-col justify-between gap-4 rounded-card bg-tint p-5 text-tint-foreground shadow-card"
+              style={{
+                backgroundImage:
+                  "radial-gradient(120% 90% at 100% 0%, rgb(255 255 255 / 0.28), transparent 55%), linear-gradient(160deg, transparent, rgb(0 0 0 / 0.18))",
+              }}
             >
-              <Copy />
-              Bağlantıyı kopyala
-            </Button>
-            <dl className="mt-4 grid gap-1.5 type-body-medium">
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Davet ettikleriniz</dt>
-                <dd className="font-medium">{user.referral_count || 0}</dd>
-              </div>
-              {config.referral.inviter_bonus > 0 && (
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Davet başına kazancınız</dt>
-                  <dd>
-                    <Money value={config.referral.inviter_bonus} />
-                  </dd>
+              <div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-subheadline font-semibold opacity-85">Kullanılabilir Bakiye</span>
+                  <Wallet weight="fill" className="size-6 opacity-85" />
                 </div>
+                <div className="mt-1 truncate text-large-title tabular-nums">{money(user?.credit, currency)}</div>
+              </div>
+              {heldCount > 0 ? (
+                <Link href="/offers" className={cn(heldCls, "press-scale outline-none focus-visible:outline-2")}>
+                  {heldContent}
+                </Link>
+              ) : (
+                <div className={heldCls}>{heldContent}</div>
+              )}
+            </section>
+            <p className="mt-2 px-4 text-footnote text-label-secondary">
+              Şu an kredi yükleme yok. Hesabınıza kredi yöneticiler tarafından eklenir; kira ve satış gelirleriniz
+              otomatik olarak bakiyenize geçer.
+            </p>
+          </div>
+
+          {referralOn && config && user && (
+            <Section
+              header="Davet Kodunuz"
+              footer={
+                <>
+                  {config.referral.trigger === "signup" && "Bonus, arkadaşınız kayıt olduğunda verilir."}
+                  {config.referral.trigger === "first_rent" && "Bonus, arkadaşınız ilk kirasını ödediğinde verilir."}
+                  {config.referral.trigger === "first_purchase" && "Bonus, arkadaşınız ilk mülkünü aldığında verilir."}
+                </>
+              }
+            >
+              <Row
+                title="Davet kodu"
+                detail={<span className="font-mono tracking-widest text-label">{user.referral_code}</span>}
+              />
+              <Row
+                icon={Copy}
+                iconColor="tint"
+                title="Bağlantıyı Kopyala"
+                onClick={() => navigator.clipboard.writeText(inviteUrl).then(() => toast.success("Davet bağlantısı kopyalandı."))}
+              />
+              <Row title="Davet ettikleriniz" detail={<span className="tabular-nums">{user.referral_count || 0}</span>} />
+              {config.referral.inviter_bonus > 0 && (
+                <Row title="Davet başına kazancınız" detail={<Money value={config.referral.inviter_bonus} />} />
               )}
               {config.referral.invitee_bonus > 0 && (
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Arkadaşınızın kazancı</dt>
-                  <dd>
-                    <Money value={config.referral.invitee_bonus} />
-                  </dd>
-                </div>
+                <Row title="Arkadaşınızın kazancı" detail={<Money value={config.referral.invitee_bonus} />} />
               )}
-            </dl>
-            <p className="mt-3 type-body-small text-muted-foreground">
-              {config.referral.trigger === "signup" && "Bonus, arkadaşınız kayıt olduğunda verilir."}
-              {config.referral.trigger === "first_rent" && "Bonus, arkadaşınız ilk kirasını ödediğinde verilir."}
-              {config.referral.trigger === "first_purchase" && "Bonus, arkadaşınız ilk mülkünü aldığında verilir."}
-            </p>
-          </Panel>
-        )}
-      </div>
+            </Section>
+          )}
+        </div>
 
-      <Panel
-        className="mt-4"
-        title="Hareketler"
-        bodyClassName="p-0"
-        actions={
-          <NativeSelect
+        <section aria-labelledby="tx-title" className="grid min-w-0 gap-4">
+          <h2 id="tx-title" className="px-1 text-title3 text-label">
+            Hareketler
+          </h2>
+          <Chips
             aria-label="Hareket türü"
-            className="h-8 w-auto"
             value={kind}
-            onChange={(e) => {
-              setKind(e.target.value as TransactionKind | "")
+            onChange={(v) => {
+              setKind(v)
               setPage(1)
             }}
-          >
-            <option value="">Tüm hareketler</option>
-            {(Object.keys(TX_LABEL) as TransactionKind[])
-              .filter((k) => k !== "commission")
-              .map((k) => (
-                <option key={k} value={k}>
-                  {TX_LABEL[k]}
-                </option>
-              ))}
-          </NativeSelect>
-        }
-      >
-        {txs.error && (
-          <div className="p-4">
-            <ErrorState message={txs.error} onRetry={txs.reload} />
-          </div>
-        )}
-        {!data && txs.loading && <Loading />}
-        {data && data.items.length === 0 && (
-          <EmptyState
-            className="m-4"
-            icon={<Receipt className="size-6" />}
-            title={kind ? "Bu türde hareket yok" : "Henüz hareket yok"}
-            description={kind ? "Filtreyi temizleyip tüm hareketlere bakın." : "Mülk aldığınızda veya kira ödediğinizde burada görünür."}
+            items={FILTERS}
           />
-        )}
-        {data && data.items.length > 0 && (
-          <ul className="divide-y">
-            {data.items.map((t) => (
-              <TxRow key={t.id} tx={t} />
-            ))}
-          </ul>
-        )}
-        {data && data.totalPages > 1 && (
-          <div className="flex items-center justify-between border-t px-4 py-3 type-body-medium">
-            <span className="text-muted-foreground">
-              Sayfa {data.page} / {data.totalPages}
-            </span>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                <ChevronLeft />
+
+          {txs.error && <ErrorState message={txs.error} onRetry={txs.reload} />}
+          {!data && txs.loading && <Loading />}
+          {data && data.items.length === 0 && (
+            <EmptyState
+              icon={<Receipt weight="fill" />}
+              title={kind ? "Bu türde hareket yok" : "Henüz hareket yok"}
+              description={kind ? "Filtreyi temizleyip tüm hareketlere bakın." : "Mülk aldığınızda veya kira ödediğinizde burada görünür."}
+            />
+          )}
+          {data && data.items.length > 0 && (
+            <div className={cn("mt-2 grid gap-6 transition-opacity", txs.loading && "opacity-60")}>
+              {groupByDay(data.items).map((g) => (
+                <Section key={g.key} header={g.label}>
+                  {g.items.map((t) => (
+                    <TxRow key={t.id} tx={t} />
+                  ))}
+                </Section>
+              ))}
+            </div>
+          )}
+          {data && data.totalPages > 1 && (
+            <nav aria-label="Sayfalar" className="mt-2 flex items-center justify-center gap-3">
+              <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                <CaretLeft weight="bold" />
                 Önceki
               </Button>
-              <Button variant="outline" size="sm" disabled={page >= data.totalPages} onClick={() => setPage((p) => p + 1)}>
+              <span className="min-w-16 text-center text-subheadline text-label-secondary tabular-nums">
+                {data.page} / {data.totalPages}
+              </span>
+              <Button variant="secondary" size="sm" disabled={page >= data.totalPages} onClick={() => setPage((p) => p + 1)}>
                 Sonraki
-                <ChevronRight />
+                <CaretRight weight="bold" />
               </Button>
-            </div>
-          </div>
-        )}
-      </Panel>
+            </nav>
+          )}
+        </section>
+      </div>
     </>
   )
 }
@@ -192,25 +270,33 @@ function TxRow({ tx }: { tx: Transaction }) {
   const { currency } = useApp()
   const prop = tx.expand?.property
   const who = tx.expand?.counterparty
+  const meta = TX_ICON[tx.kind] || { icon: Receipt, color: "gray" }
+  const context = [prop?.name, who?.name, !prop && tx.note ? tx.note : ""].filter(Boolean).join(" · ")
+  const d = toDate(tx.created)
   return (
-    <li className="flex items-start gap-3 px-4 py-3">
-      <div className="min-w-0 flex-1">
-        <div className="type-title-small">{TX_LABEL[tx.kind] || tx.kind}</div>
-        <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 type-body-small text-muted-foreground">
-          <span>{dateTime(tx.created)}</span>
-          {prop && (
-            <Link href={`/properties/${prop.id}`} className="truncate text-primary hover:underline">
-              {prop.name}
-            </Link>
-          )}
-          {who && who.name && <span className="truncate">{who.name}</span>}
-          {tx.note && !prop && <span className="truncate">{tx.note}</span>}
-        </div>
-      </div>
-      <div className="shrink-0 text-right">
-        <Money value={tx.amount} signed className="type-title-small" />
-        <div className="type-body-small text-muted-foreground">{money(tx.balance_after, currency)}</div>
-      </div>
-    </li>
+    <Row
+      href={prop ? `/properties/${prop.id}` : undefined}
+      leading={<IconTile icon={meta.icon} color={meta.color} />}
+      accessory={
+        <span className="flex shrink-0 items-center gap-2">
+          <span className="text-right">
+            {/* Gelir yeşil ve "+", gider normal renkte "−" (Apple Cash) */}
+            <span className={cn("block text-body whitespace-nowrap tabular-nums", tx.amount > 0 ? "text-gain" : "text-label")}>
+              {signedMoney(tx.amount, currency)}
+            </span>
+            <span className="block text-footnote whitespace-nowrap text-label-secondary tabular-nums">
+              {money(tx.balance_after, currency)}
+            </span>
+          </span>
+          {prop && <CaretRight weight="bold" className="size-3.5 shrink-0 text-label-tertiary" />}
+        </span>
+      }
+    >
+      <span className="block truncate text-headline text-label">{TX_LABEL[tx.kind] || tx.kind}</span>
+      {context && <span className="block truncate text-subheadline text-label-secondary">{context}</span>}
+      <time dateTime={tx.created} title={dateTime(tx.created)} className="block text-footnote text-label-secondary tabular-nums">
+        {d ? d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }) : ""}
+      </time>
+    </Row>
   )
 }

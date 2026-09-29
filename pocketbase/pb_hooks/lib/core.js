@@ -9,7 +9,7 @@
 const DEFAULTS = {
   general: {
     site_name: "Erqan",
-    brand_color: "#0F91E3", // Material 3 renk şemasının üretildiği ana renk
+    brand_color: "#0F91E3", // Uygulamanın vurgu rengi (Apple HIG "accent/tint")
     currency: "USD",
     maintenance: false,
     maintenance_message: "Sistem bakımda, lütfen daha sonra tekrar deneyin.",

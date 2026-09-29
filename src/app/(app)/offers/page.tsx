@@ -2,27 +2,26 @@
 
 import Link from "next/link"
 import { useState } from "react"
-import { Handshake } from "lucide-react"
+import { Handshake } from "@phosphor-icons/react"
 import { api, pb } from "@/lib/pb"
 import { money, OFFER_STATUS_LABEL, relative } from "@/lib/format"
 import type { Offer, OfferStatus } from "@/lib/types"
-import { cn } from "@/lib/utils"
 import { useAction, useLoad } from "@/hooks/use-data"
 import { useApp } from "@/components/app-provider"
 import { PropertyVisual } from "@/components/property-card"
-import { ConfirmDialog, EmptyState, ErrorState, Loading, Money, PageHeader } from "@/components/kit"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ConfirmDialog, EmptyState, ErrorState, Loading, Money, PageHeader, Section, Tag } from "@/components/kit"
+import { Button, buttonVariants } from "@/components/ui/button"
+import { Segmented } from "@/components/ui/tabs"
 
 type Side = "in" | "out"
 type Pending = { offer: Offer; action: "accept" | "reject" | "withdraw" } | null
 
-const STATUS_STYLE: Record<OfferStatus, string> = {
-  pending: "border-primary/40 bg-primary/10 text-primary",
-  accepted: "border-gain/40 bg-gain/10 text-gain",
-  rejected: "border-loss/40 bg-loss/10 text-loss",
-  withdrawn: "border-border text-muted-foreground",
-  expired: "border-border text-muted-foreground",
+const STATUS_TONE: Record<OfferStatus, "orange" | "green" | "red" | "gray"> = {
+  pending: "orange",
+  accepted: "green",
+  rejected: "red",
+  withdrawn: "gray",
+  expired: "gray",
 }
 
 function sortOffers(list: Offer[]) {
@@ -78,7 +77,7 @@ export default function OffersPage() {
       const net = Math.round(offer.amount * (1 - commission / 100) * 100) / 100
       return {
         title: "Teklifi kabul et",
-        confirmLabel: "Kabul et ve sat",
+        confirmLabel: "Kabul Et ve Sat",
         description: (
           <>
             {name}, {offer.expand?.buyer?.name || "alıcıya"} {amount} karşılığında devredilecek.
@@ -99,11 +98,15 @@ export default function OffersPage() {
       }
     return {
       title: "Teklifi geri çek",
-      confirmLabel: "Geri çek",
+      confirmLabel: "Geri Çek",
       destructive: true,
       description: `${name} için verdiğiniz ${amount} teklif geri çekilecek; bloke tutar bakiyenize iade edilir.`,
     }
   })()
+
+  const list = offers.data?.[tab] || []
+  const open = list.filter((o) => o.status === "pending")
+  const past = list.filter((o) => o.status !== "pending")
 
   return (
     <>
@@ -120,50 +123,57 @@ export default function OffersPage() {
       {!offers.data && offers.loading && <Loading />}
 
       {offers.data && (
-        <Tabs value={tab} onValueChange={(v) => setTab(v as Side)}>
-          <TabsList>
-            <TabsTrigger value="in" className="px-3">
-              Gelen{inPending > 0 && <span className="type-body-small text-primary">({inPending})</span>}
-            </TabsTrigger>
-            <TabsTrigger value="out" className="px-3">
-              Giden{outPending > 0 && <span className="type-body-small text-primary">({outPending})</span>}
-            </TabsTrigger>
-          </TabsList>
-          {(["in", "out"] as Side[]).map((side) => (
-            <TabsContent key={side} value={side} className="mt-2">
-              {offers.data![side].length === 0 ? (
-                <EmptyState
-                  icon={<Handshake className="size-6" />}
-                  title={side === "in" ? "Size gelen teklif yok" : "Henüz teklif vermediniz"}
-                  description={
-                    side === "in"
-                      ? "Bir mülkünüzü satışa çıkardığınızda alıcıların teklifleri burada görünür."
-                      : "Satılık ilanlarda beğendiğiniz mülke fiyat teklif edebilirsiniz."
-                  }
-                  action={
-                    side === "out" ? (
-                      <Link href="/listings?tab=sale" className="type-title-small text-primary hover:underline">
-                        Satılık ilanlara bak
-                      </Link>
-                    ) : undefined
-                  }
-                />
-              ) : (
-                <ul className="grid gap-3">
-                  {offers.data![side].map((o) => (
-                    <OfferRow
-                      key={o.id}
-                      offer={o}
-                      side={side}
-                      busy={pending === o.id}
-                      onAction={(action) => setConfirm({ offer: o, action })}
-                    />
-                  ))}
-                </ul>
-              )}
-            </TabsContent>
-          ))}
-        </Tabs>
+        <div className="grid gap-6">
+          <Segmented
+            aria-label="Teklif yönü"
+            value={tab}
+            onValueChange={setTab}
+            items={[
+              { value: "in", label: <SegmentLabel label="Gelen" count={inPending} /> },
+              { value: "out", label: <SegmentLabel label="Giden" count={outPending} /> },
+            ]}
+          />
+
+          {list.length === 0 ? (
+            <EmptyState
+              icon={<Handshake weight="fill" />}
+              title={tab === "in" ? "Size gelen teklif yok" : "Henüz teklif vermediniz"}
+              description={
+                tab === "in"
+                  ? "Bir mülkünüzü satışa çıkardığınızda alıcıların teklifleri burada görünür."
+                  : "Satılık ilanlarda beğendiğiniz mülke fiyat teklif edebilirsiniz."
+              }
+              action={
+                tab === "out" ? (
+                  <Link href="/listings?tab=sale" className={buttonVariants({ variant: "secondary" })}>
+                    Satılık İlanlara Bak
+                  </Link>
+                ) : undefined
+              }
+            />
+          ) : (
+            <div className="grid gap-8">
+              {[
+                { key: "open", header: "Bekleyen", items: open },
+                { key: "past", header: "Geçmiş", items: past },
+              ]
+                .filter((g) => g.items.length > 0)
+                .map((g) => (
+                  <Section key={g.key} header={g.header}>
+                    {g.items.map((o) => (
+                      <OfferRow
+                        key={o.id}
+                        offer={o}
+                        side={tab}
+                        busy={pending === o.id}
+                        onAction={(action) => setConfirm({ offer: o, action })}
+                      />
+                    ))}
+                  </Section>
+                ))}
+            </div>
+          )}
+        </div>
       )}
 
       {dialog && (
@@ -178,6 +188,15 @@ export default function OffersPage() {
           onConfirm={execute}
         />
       )}
+    </>
+  )
+}
+
+function SegmentLabel({ label, count }: { label: string; count: number }) {
+  return (
+    <>
+      {label}
+      {count > 0 && <span className="font-normal text-label-secondary tabular-nums">({count})</span>}
     </>
   )
 }
@@ -197,54 +216,70 @@ function OfferRow({
   const prop = offer.expand?.property
   const other = side === "in" ? offer.expand?.buyer : offer.expand?.seller
   const isPending = offer.status === "pending"
+  const href = prop ? `/properties/${prop.id}` : "#"
   return (
-    <li className="flex flex-col gap-3 rounded-xl border bg-card p-3 sm:flex-row sm:items-center">
-      <div className="flex min-w-0 flex-1 items-center gap-3">
-        <Link href={prop ? `/properties/${prop.id}` : "#"} className="shrink-0 overflow-hidden rounded-lg border bg-background">
-          {prop ? <PropertyVisual property={prop} className="size-14" /> : <div className="size-14 bg-muted" />}
-        </Link>
-        <div className="min-w-0">
-          <Link href={prop ? `/properties/${prop.id}` : "#"} className="block truncate font-medium hover:underline">
+    <li data-slot="list-row" className="group/row relative flex items-start gap-3 pl-4">
+      <Link
+        href={href}
+        aria-hidden="true"
+        tabIndex={-1}
+        className="press-dim mt-3 shrink-0 overflow-hidden rounded-[12px] bg-fill-tertiary"
+      >
+        {prop ? <PropertyVisual property={prop} className="size-14" /> : <span className="block size-14" />}
+      </Link>
+      <div className="relative min-w-0 flex-1 py-3 pr-4 after:hairline after:absolute after:right-0 after:bottom-0 after:left-0 after:bg-separator group-last/row:after:hidden">
+        <div className="flex items-baseline gap-3">
+          <Link href={href} className="press-dim line-clamp-2 min-w-0 flex-1 text-headline break-words text-label outline-none focus-visible:underline">
             {prop?.name || "Mülk"}
           </Link>
-          <div className="mt-0.5 type-body-small text-muted-foreground">
-            {side === "in" ? "Alıcı: " : "Satıcı: "}
-            {other ? (
-              <Link href={`/users/${other.id}`} className="hover:underline">
-                {other.name || "Kullanıcı"}
-              </Link>
-            ) : (
-              "Kullanıcı"
-            )}
-            {prop && prop.sale_price > 0 && isPending && <>, ilan fiyatı {money(prop.sale_price, currency)}</>}
-          </div>
-          {offer.message && <p className="mt-1 line-clamp-2 type-body-medium text-muted-foreground">“{offer.message}”</p>}
+          <Money value={offer.amount} className="shrink-0 text-headline text-label" />
         </div>
-      </div>
-      <div className="flex items-center justify-between gap-4 border-t pt-3 sm:justify-end sm:border-0 sm:pt-0">
-        <div className="sm:text-right">
-          <Money value={offer.amount} className="type-title-large" />
-          <div className="mt-0.5 flex items-center gap-2 type-body-small text-muted-foreground sm:justify-end">
-            <span className={cn("rounded-full border px-2 py-0.5 font-medium", STATUS_STYLE[offer.status])}>
-              {OFFER_STATUS_LABEL[offer.status]}
-            </span>
-            {isPending ? <span>{relative(offer.expires)} kapanır</span> : <span>{relative(offer.updated)}</span>}
-          </div>
+        <p className="mt-0.5 truncate text-subheadline text-label-secondary">
+          {side === "in" ? "Alıcı: " : "Satıcı: "}
+          {other ? (
+            <Link href={`/users/${other.id}`} className="press-dim text-tint">
+              {other.name || "Kullanıcı"}
+            </Link>
+          ) : (
+            "Kullanıcı"
+          )}
+        </p>
+        {prop && prop.sale_price > 0 && isPending && (
+          <p className="text-footnote text-label-secondary tabular-nums">İlan fiyatı {money(prop.sale_price, currency)}</p>
+        )}
+        {offer.message && <p className="mt-1 line-clamp-2 text-subheadline text-label">“{offer.message}”</p>}
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+          <Tag tone={STATUS_TONE[offer.status]}>{OFFER_STATUS_LABEL[offer.status]}</Tag>
+          <span className="text-footnote whitespace-nowrap text-label-secondary">
+            {isPending ? `${relative(offer.expires)} kapanır` : relative(offer.updated)}
+          </span>
         </div>
         {isPending && (
-          <div className="flex shrink-0 gap-2">
+          <div className="mt-3 flex gap-2">
             {side === "in" ? (
               <>
-                <Button variant="outline" size="sm" disabled={busy} onClick={() => onAction("reject")}>
+                <Button
+                  variant="destructive-secondary"
+                  size="sm"
+                  className="flex-1 sm:flex-none sm:px-5"
+                  disabled={busy}
+                  onClick={() => onAction("reject")}
+                >
                   Reddet
                 </Button>
-                <Button size="sm" disabled={busy} onClick={() => onAction("accept")}>
-                  Kabul et
+                <Button size="sm" className="flex-1 sm:flex-none sm:px-5" disabled={busy} onClick={() => onAction("accept")}>
+                  Kabul Et
                 </Button>
               </>
             ) : (
-              <Button variant="outline" size="sm" disabled={busy} onClick={() => onAction("withdraw")}>
-                Geri çek
+              <Button
+                variant="destructive-secondary"
+                size="sm"
+                className="flex-1 sm:flex-none sm:px-5"
+                disabled={busy}
+                onClick={() => onAction("withdraw")}
+              >
+                Geri Çek
               </Button>
             )}
           </div>

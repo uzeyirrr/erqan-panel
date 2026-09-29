@@ -2,274 +2,236 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import { useTheme } from "next-themes"
-import {
-  Bell,
-  Building2,
-  ChartPie,
-  Handshake,
-  House,
-  KeyRound,
-  LayoutGrid,
-  LogOut,
-  Map,
-  MapPinned,
-  Menu,
-  Moon,
-  Receipt,
-  Settings2,
-  Shapes,
-  Signpost,
-  Store,
-  Sun,
-  UserRound,
-  Users,
-  Wallet,
-  Wrench,
-} from "lucide-react"
+import { ViewTransition, useEffect, useLayoutEffect, useRef } from "react"
+import { Wrench } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 import { money } from "@/lib/format"
 import { useApp } from "@/components/app-provider"
-import { Loading } from "@/components/kit"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Avatar, EmptyState, Loading } from "@/components/kit"
+import { EdgeSwipeBack, skipNextNavAnimation } from "@/components/edge-swipe-back"
+import { PullToRefresh } from "@/components/pull-to-refresh"
+import { ADMIN, MORE, TABS, isActive, isTabRoot, navStack, tabOf, type NavItem } from "@/components/nav"
 
-// Material 3 gezinme: geniş ekranda gezinme çekmecesi, dar ekranda üst uygulama çubuğu + gezinme çubuğu.
-// https://m3.material.io/components/navigation-drawer  https://m3.material.io/components/navigation-bar
+// iOS 26 gezinmesi: iPhone'da içeriğin üzerinde yüzen Liquid Glass sekme çubuğu;
+// geniş ekranda (iPadOS / Mac) aynı bölümler yüzen bir kenar çubuğunda.
+// https://developer.apple.com/design/human-interface-guidelines/tab-bars
+// https://developer.apple.com/design/human-interface-guidelines/sidebars
 
-type NavItem = { href: string; label: string; icon: React.ComponentType<{ className?: string }>; badge?: number }
-
-export function userNav(unread: number): NavItem[] {
-  return [
-    { href: "/dashboard", label: "Özet", icon: ChartPie },
-    { href: "/market", label: "Satın al", icon: Store },
-    { href: "/listings", label: "İlanlar", icon: Signpost },
-    { href: "/my-properties", label: "Mülklerim", icon: Building2 },
-    { href: "/offers", label: "Teklifler", icon: Handshake },
-    { href: "/wallet", label: "Cüzdan", icon: Wallet },
-    { href: "/notifications", label: "Bildirimler", icon: Bell, badge: unread },
-    { href: "/account", label: "Hesabım", icon: UserRound },
-  ]
-}
-
-export const adminNav: NavItem[] = [
-  { href: "/admin", label: "Genel bakış", icon: LayoutGrid },
-  { href: "/admin/settings", label: "Ayarlar", icon: Settings2 },
-  { href: "/admin/types", label: "Mülk tipleri", icon: Shapes },
-  { href: "/admin/locations", label: "Konumlar ve stok", icon: MapPinned },
-  { href: "/admin/catalog", label: "Özellikler ve yükseltmeler", icon: Wrench },
-  { href: "/admin/users", label: "Kullanıcılar", icon: Users },
-  { href: "/admin/properties", label: "Mülkler", icon: Map },
-  { href: "/admin/rentals", label: "Kiralar", icon: KeyRound },
-  { href: "/admin/transactions", label: "İşlemler", icon: Receipt },
-]
-
-function isActive(pathname: string, href: string) {
-  if (href === "/admin") return pathname === "/admin"
-  return pathname === href || pathname.startsWith(href + "/")
-}
-
-function BadgeCount({ n }: { n: number }) {
+function Badge({ n, className }: { n: number; className?: string }) {
   return (
-    <span className="figure inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-error px-1 type-label-small text-on-error">
+    <span
+      className={cn(
+        "flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-system-red px-1 text-caption2 font-semibold text-white tabular-nums",
+        className,
+      )}
+    >
       {n > 99 ? "99+" : n}
     </span>
   )
 }
 
-function DrawerList({ items, pathname, onNavigate }: { items: NavItem[]; pathname: string; onNavigate?: () => void }) {
+function TabBar({ pathname }: { pathname: string }) {
+  const { unread } = useApp()
+  const current = tabOf(pathname)
   return (
-    <ul className="grid">
-      {items.map((item) => {
-        const active = isActive(pathname, item.href)
-        const Icon = item.icon
-        return (
-          <li key={item.href}>
-            <Link
-              href={item.href}
-              onClick={onNavigate}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "state-layer flex h-14 items-center gap-3 rounded-full px-4 type-label-large outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-                active ? "bg-secondary-container text-on-secondary-container" : "text-on-surface-variant",
-              )}
-            >
-              <Icon className="size-6 shrink-0" />
-              <span className="flex-1 truncate">{item.label}</span>
-              {!!item.badge && <BadgeCount n={item.badge} />}
-            </Link>
-          </li>
-        )
-      })}
-    </ul>
-  )
-}
-
-function BrandMark({ className }: { className?: string }) {
-  return (
-    <span className={cn("flex size-10 items-center justify-center rounded-xl bg-primary text-on-primary", className)} aria-hidden="true">
-      <House className="size-6" />
-    </span>
-  )
-}
-
-function Brand() {
-  const { config } = useApp()
-  return (
-    <Link href="/dashboard" className="flex items-center gap-3 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
-      <BrandMark />
-      <span className="type-title-large text-on-surface">{config?.general.site_name || "Erqan"}</span>
-    </Link>
-  )
-}
-
-function DrawerBody({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
-  const { user, unread, isAdmin, currency, logout } = useApp()
-  const { resolvedTheme, setTheme } = useTheme()
-  const router = useRouter()
-  return (
-    <div className="flex h-full flex-col">
-      <div className="px-4 pt-4 pb-3">
-        <Brand />
-      </div>
-      <Link
-        href="/wallet"
-        onClick={onNavigate}
-        className="state-layer mx-3 mb-2 rounded-xl bg-surface-container-highest px-4 py-3 text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    <>
+      {/* Alt kaydırma kenarı: içerik sekme çubuğunun altına girerken bulanıklaşır */}
+      <div
+        aria-hidden="true"
+        className="scroll-edge-bottom pointer-events-none fixed inset-x-0 bottom-0 z-30 h-[calc(max(env(safe-area-inset-bottom)-12px,12px)+86px)] lg:hidden"
+      />
+      <nav
+        aria-label="Sekmeler"
+        className="pointer-events-none fixed inset-x-0 bottom-[max(calc(env(safe-area-inset-bottom)-12px),12px)] z-40 px-[max(16px,env(safe-area-inset-left))] [view-transition-name:tab-bar] lg:hidden"
       >
-        <div className="type-label-medium text-on-surface-variant">Bakiyeniz</div>
-        <div className="figure type-title-large">{money(user?.credit, currency)}</div>
+        <ul className="glass pointer-events-auto mx-auto flex h-[62px] max-w-[440px] items-stretch rounded-full p-1">
+          {TABS.map((tab) => {
+            const active = current === tab.href
+            const Icon = tab.icon
+            const badge = tab.href === "/account" ? unread : 0
+            return (
+              <li key={tab.href} className="flex flex-1">
+                <Link
+                  href={tab.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "press-scale relative flex flex-1 flex-col items-center justify-center gap-px rounded-full outline-none focus-visible:outline-2 focus-visible:-outline-offset-2",
+                    active ? "bg-fill-tertiary text-tint" : "text-label",
+                  )}
+                >
+                  <span className="relative">
+                    <Icon weight="fill" className="size-[26px]" />
+                    {badge > 0 && <Badge n={badge} className="absolute -top-1 -right-2.5" />}
+                  </span>
+                  <span className="text-[10px] leading-3 font-semibold tracking-[0.1px]">{tab.label}</span>
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      </nav>
+    </>
+  )
+}
+
+function SidebarLink({ item, pathname, badge }: { item: NavItem; pathname: string; badge?: number }) {
+  const active = isActive(pathname, item.href) && !(item.href === "/account" && pathname !== "/account")
+  const Icon = item.icon
+  return (
+    <li>
+      <Link
+        href={item.href}
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          "flex h-10 items-center gap-3 rounded-[12px] px-3 text-body outline-none transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2",
+          active ? "bg-fill-tertiary font-semibold text-tint" : "text-label hover:bg-fill-quaternary active:bg-fill-tertiary",
+        )}
+      >
+        <Icon weight={active ? "fill" : "regular"} className={cn("size-[22px] shrink-0", !active && "text-tint")} />
+        <span className="min-w-0 flex-1 truncate">{item.label}</span>
+        {!!badge && <Badge n={badge} />}
       </Link>
-      <nav className="flex-1 overflow-y-auto px-3 pb-3" aria-label="Ana menü">
-        <DrawerList items={userNav(unread)} pathname={pathname} onNavigate={onNavigate} />
+    </li>
+  )
+}
+
+function Sidebar({ pathname }: { pathname: string }) {
+  const { user, unread, isAdmin, currency, config } = useApp()
+  const main = TABS.filter((t) => t.href !== "/account")
+  return (
+    <aside className="glass-thick fixed inset-y-2 left-2 z-30 hidden w-[304px] flex-col overflow-hidden rounded-[26px] [view-transition-name:sidebar] lg:flex">
+      <div className="px-5 pt-6 pb-3">
+        <Link href="/dashboard" className="text-title1 text-label outline-none">
+          {config?.general.site_name || "Erqan"}
+        </Link>
+      </div>
+      <nav aria-label="Ana menü" className="flex-1 overflow-y-auto px-3 pb-3">
+        <ul className="grid gap-0.5">
+          {main.map((item) => (
+            <SidebarLink key={item.href} item={item} pathname={pathname} />
+          ))}
+        </ul>
+        <div className="mt-5 mb-1 px-3 text-footnote font-semibold text-label-secondary">Hesap</div>
+        <ul className="grid gap-0.5">
+          {MORE.map((item) => (
+            <SidebarLink key={item.href} item={item} pathname={pathname} badge={item.href === "/notifications" ? unread : 0} />
+          ))}
+        </ul>
         {isAdmin && (
           <>
-            <div className="mx-4 my-2 h-px bg-outline-variant" />
-            <div className="flex h-14 items-center px-4 type-title-small text-on-surface-variant">Yönetim</div>
-            <DrawerList items={adminNav} pathname={pathname} onNavigate={onNavigate} />
+            <div className="mt-5 mb-1 px-3 text-footnote font-semibold text-label-secondary">Yönetim</div>
+            <ul className="grid gap-0.5">
+              {ADMIN.map((item) => (
+                <SidebarLink key={item.href} item={item} pathname={pathname} />
+              ))}
+            </ul>
           </>
         )}
       </nav>
-      <div className="flex items-center gap-1 border-t border-outline-variant px-3 py-2">
-        <Link
-          href="/account"
-          onClick={onNavigate}
-          className="state-layer min-w-0 flex-1 truncate rounded-full px-3 py-2 type-label-large text-on-surface-variant outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          {user?.name || user?.email}
-        </Link>
-        <button
-          type="button"
-          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-          className="state-layer flex size-10 items-center justify-center rounded-full text-on-surface-variant outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label={resolvedTheme === "dark" ? "Açık temaya geç" : "Koyu temaya geç"}
-        >
-          {resolvedTheme === "dark" ? <Sun className="size-5" /> : <Moon className="size-5" />}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            logout()
-            router.replace("/login")
-          }}
-          className="state-layer flex size-10 items-center justify-center rounded-full text-on-surface-variant outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label="Çıkış yap"
-        >
-          <LogOut className="size-5" />
-        </button>
-      </div>
-    </div>
+      <Link
+        href="/account"
+        className={cn(
+          "mx-3 mb-3 flex items-center gap-3 rounded-[16px] p-2.5 outline-none transition-colors hover:bg-fill-quaternary active:bg-fill-tertiary focus-visible:outline-2",
+          pathname === "/account" && "bg-fill-tertiary",
+        )}
+      >
+        <Avatar name={user?.name || user?.email} />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-subheadline font-semibold text-label">{user?.name || "Hesabım"}</span>
+          <span className="block truncate text-footnote text-label-secondary tabular-nums">{money(user?.credit, currency)}</span>
+        </span>
+      </Link>
+    </aside>
   )
 }
 
-const BAR_ITEMS = ["/dashboard", "/market", "/listings", "/my-properties"]
+const EASE_IOS = "cubic-bezier(0.32, 0.72, 0, 1)"
+const NAV_MS = 450
 
-function CompactNav({ pathname }: { pathname: string }) {
-  const { unread, user, currency } = useApp()
-  const [open, setOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
-  const items = userNav(unread).filter((i) => BAR_ITEMS.includes(i.href))
+/**
+ * Geri gezinmede (popstate) eski sayfanın durağan bir kopyasını ekranda tutup sağa kaydırır.
+ * React geri gezinmeyi eşzamanlı işlediği için görünüm geçişi (View Transition) oynamaz;
+ * popstate anında DOM hâlâ eski sayfayı gösterdiğinden kopya o an alınır.
+ */
+function slideOutSnapshot() {
+  const main = document.querySelector<HTMLElement>("main[data-slot=page]")
+  if (!main) return
+  const rect = main.getBoundingClientRect()
+  const layer = document.createElement("div")
+  layer.setAttribute("aria-hidden", "true")
+  layer.inert = true
+  Object.assign(layer.style, {
+    position: "fixed",
+    top: "0",
+    left: `${rect.left}px`,
+    width: `${rect.width}px`,
+    height: "100dvh",
+    overflow: "hidden",
+    zIndex: "35",
+    pointerEvents: "none",
+    background: "var(--grouped)",
+    boxShadow: "-10px 0 30px rgb(0 0 0 / 0.14)",
+  })
+  const clone = main.cloneNode(true) as HTMLElement
+  clone.removeAttribute("data-slot")
+  clone.style.transform = `translateY(${rect.top}px)`
+  // Yapışkan gezinme çubuğu kopyada kaydırılmaz; görünür konumuna taşınır.
+  const bar = clone.querySelector<HTMLElement>("[data-slot=nav-bar]")
+  if (bar) Object.assign(bar.style, { position: "relative", top: `${-rect.top}px` })
+  layer.appendChild(clone)
+  document.body.appendChild(layer)
+  layer
+    .animate([{ transform: "translateX(0)" }, { transform: "translateX(100%)" }], {
+      duration: NAV_MS,
+      easing: EASE_IOS,
+      fill: "forwards",
+    })
+    .finished.catch(() => {})
+    .finally(() => layer.remove())
+}
+
+/**
+ * iOS gezinme yığını animasyonu (push / pop): alt sayfaya gidince yeni sayfa sağdan kayarak
+ * gelir (View Transition, animasyonlar globals.css'te), geri dönünce eski sayfa sağa kayarken
+ * önceki sayfa soldan gelir; sekmeler arası geçiş anlıktır. Safari'nin kendi kaydırarak geri
+ * gitme animasyonu varsa (hasUAVisualTransition) ya da kenardan kaydırma hareketi zaten
+ * oynattıysa tekrar oynatılmaz.
+ */
+function useNavDirection(pathname: string, mainRef: React.RefObject<HTMLElement | null>) {
+  const pop = useRef<{ pop: boolean; animate: boolean }>({ pop: false, animate: false })
+  const prev = useRef(pathname)
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 4)
-    onScroll()
-    window.addEventListener("scroll", onScroll, { passive: true })
-    return () => window.removeEventListener("scroll", onScroll)
+    const onPop = (e: PopStateEvent) => {
+      const ua = !!(e as PopStateEvent & { hasUAVisualTransition?: boolean }).hasUAVisualTransition
+      const animate = !ua && !skipNextNavAnimation.current && !matchMedia("(prefers-reduced-motion: reduce)").matches
+      pop.current = { pop: true, animate }
+      if (animate) slideOutSnapshot()
+    }
+    window.addEventListener("popstate", onPop)
+    return () => window.removeEventListener("popstate", onPop)
   }, [])
 
-  return (
-    <>
-      {/* Küçük üst uygulama çubuğu: kaydırınca surface-container rengine geçer */}
-      <header
-        className={cn(
-          "sticky top-0 z-30 flex h-16 items-center gap-1 px-1 transition-colors lg:hidden",
-          scrolled ? "bg-surface-container" : "bg-surface",
-        )}
-      >
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="state-layer flex size-12 items-center justify-center rounded-full text-on-surface"
-          aria-label="Menüyü aç"
-        >
-          <Menu className="size-6" />
-        </button>
-        <Link href="/dashboard" className="flex-1 truncate type-title-large text-on-surface">
-          Erqan
-        </Link>
-        <Link href="/wallet" className="state-layer figure rounded-full px-3 py-2 type-label-large text-on-surface-variant">
-          {money(user?.credit, currency)}
-        </Link>
-        <Link
-          href="/notifications"
-          className="state-layer relative flex size-12 items-center justify-center rounded-full text-on-surface-variant"
-          aria-label={unread ? `Bildirimler, ${unread} okunmamış` : "Bildirimler"}
-        >
-          <Bell className="size-6" />
-          {unread > 0 && <span className="absolute top-2.5 right-2.5 size-1.5 rounded-full bg-error" />}
-        </Link>
-      </header>
-
-      {/* Gezinme çubuğu */}
-      <nav
-        className="fixed inset-x-0 bottom-0 z-30 grid h-20 grid-cols-4 bg-surface-container pb-[env(safe-area-inset-bottom)] lg:hidden"
-        aria-label="Alt menü"
-      >
-        {items.map((item) => {
-          const Icon = item.icon
-          const active = isActive(pathname, item.href)
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={active ? "page" : undefined}
-              className="group flex flex-col items-center justify-center gap-1 outline-none"
-            >
-              <span
-                className={cn(
-                  "state-layer flex h-8 w-16 items-center justify-center rounded-full transition-colors group-focus-visible:ring-2 group-focus-visible:ring-ring",
-                  active ? "bg-secondary-container text-on-secondary-container" : "text-on-surface-variant",
-                )}
-              >
-                <Icon className="size-6" />
-              </span>
-              <span className={cn("type-label-medium", active ? "text-on-surface" : "text-on-surface-variant")}>{item.label}</span>
-            </Link>
-          )
-        })}
-      </nav>
-
-      {/* Modal gezinme çekmecesi */}
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="left" className="p-0" showCloseButton={false}>
-          <SheetHeader className="sr-only">
-            <SheetTitle>Menü</SheetTitle>
-          </SheetHeader>
-          <DrawerBody pathname={pathname} onNavigate={() => setOpen(false)} />
-        </SheetContent>
-      </Sheet>
-    </>
-  )
+  // Düzen efekti, React'in görünüm geçişi güncellemesi içinde (animasyon başlamadan önce) çalışır.
+  useLayoutEffect(() => {
+    if (prev.current === pathname) return
+    const { pop: back, animate } = pop.current
+    pop.current = { pop: false, animate: false }
+    navStack.depth = back ? Math.max(0, navStack.depth - 1) : navStack.depth + 1
+    const skip = skipNextNavAnimation.current
+    skipNextNavAnimation.current = false
+    document.documentElement.dataset.nav = skip || back ? "none" : isTabRoot(pathname) ? "none" : "forward"
+    if (back && animate) {
+      mainRef.current?.animate(
+        [
+          { transform: "translateX(-30%)", filter: "brightness(0.9)" },
+          { transform: "none", filter: "none" },
+        ],
+        { duration: NAV_MS, easing: EASE_IOS },
+      )
+    }
+    prev.current = pathname
+  }, [pathname, mainRef])
 }
 
 /** Giriş gerektiren tüm sayfaların iskeleti. `admin` ise yalnızca yöneticiler görebilir. */
@@ -277,6 +239,8 @@ export function AppShell({ children, admin }: { children: React.ReactNode; admin
   const { ready, user, isAdmin, config } = useApp()
   const router = useRouter()
   const pathname = usePathname()
+  const mainRef = useRef<HTMLElement>(null)
+  useNavDirection(pathname, mainRef)
 
   useEffect(() => {
     if (!ready) return
@@ -284,31 +248,39 @@ export function AppShell({ children, admin }: { children: React.ReactNode; admin
     else if (admin && !isAdmin) router.replace("/dashboard")
   }, [ready, user, admin, isAdmin, router, pathname])
 
-  if (!ready || !user || (admin && !isAdmin)) return <Loading className="min-h-screen" />
+  if (!ready || !user || (admin && !isAdmin)) return <Loading className="min-h-dvh" />
 
   if (config?.general.maintenance && !isAdmin) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-6">
-        <div className="max-w-md text-center">
-          <h1 className="type-headline-small">Kısa bir bakım molası</h1>
-          <p className="mt-2 type-body-medium text-on-surface-variant">{config.general.maintenance_message}</p>
-        </div>
+      <div className="flex min-h-dvh items-center justify-center p-6">
+        <EmptyState
+          icon={<Wrench weight="fill" />}
+          title="Kısa bir bakım molası"
+          description={config.general.maintenance_message}
+        />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen lg:pl-[304px]">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[304px] bg-surface-container-low lg:block">
-        <DrawerBody pathname={pathname} />
-      </aside>
-      <CompactNav pathname={pathname} />
+    <div className="min-h-dvh px-safe lg:pl-[320px]">
+      <Sidebar pathname={pathname} />
       {config?.general.maintenance && isAdmin && (
-        <div className="bg-tertiary-container px-4 py-3 type-body-medium text-on-tertiary-container">
+        <div className="bg-system-orange px-4 py-2 pt-[calc(env(safe-area-inset-top)+0.5rem)] text-center text-footnote font-semibold text-white">
           Bakım modu açık: kullanıcılar şu anda paneli kullanamıyor.
         </div>
       )}
-      <main className="mx-auto max-w-6xl px-4 pt-4 pb-28 sm:px-6 lg:px-8 lg:pt-8 lg:pb-12">{children}</main>
+      <ViewTransition key={pathname} enter="page-enter" exit="page-exit" default="none">
+        <main
+          ref={mainRef}
+          data-slot="page"
+          className="mx-auto min-h-dvh max-w-5xl bg-grouped px-4 pb-[calc(max(env(safe-area-inset-bottom)-12px,12px)+96px)] sm:px-6 lg:px-8 lg:pb-16">
+          {children}
+        </main>
+      </ViewTransition>
+      <TabBar pathname={pathname} />
+      <PullToRefresh />
+      <EdgeSwipeBack />
     </div>
   )
 }

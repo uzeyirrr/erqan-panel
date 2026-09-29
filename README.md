@@ -4,7 +4,7 @@ Sanal emlak platformu Erqan'ın kullanıcı ve yönetim paneli (`panel.erqan.com
 Kullanıcılar dünyanın farklı şehirlerinde mülk satın alır, kiraya verir, satar, teklif verir,
 arsasına ev inşa eder ve kira gelirini takip eder. Tüm kurallar admin panelinden yönetilir.
 
-Tasarım ve kararlar için: [PLAN.md](PLAN.md)
+Kararlar için: [PLAN.md](PLAN.md) · Tasarım sistemi (Apple HIG, iOS 26): [DESIGN.md](DESIGN.md)
 
 ## Yapı
 
@@ -14,7 +14,7 @@ pocketbase/            Backend (PocketBase 0.40)
   pb_hooks/            İş kuralları: satın alma, kira, satış, teklif, inşaat, cron
   tests/e2e.mjs        Uçtan uca backend testi
   Dockerfile           api.erqan.com imajı
-src/                   Panel (Next.js 16, React 19, Tailwind 4, Base UI, Material Design 3)
+src/                   Panel (Next.js 16, React 19, Tailwind 4, Base UI, Apple HIG / iOS 26)
   app/(auth)           Giriş, kayıt
   app/(app)            Kullanıcı sayfaları
   app/(app)/admin      Yönetim paneli

@@ -2,14 +2,21 @@ import * as React from "react"
 import { Input as InputPrimitive } from "@base-ui/react/input"
 import { cn } from "@/lib/utils"
 
+// iOS metin alanı — https://developer.apple.com/design/human-interface-guidelines/text-fields
+// Dolgulu, köşeleri yuvarlatılmış alan; gruplu liste satırı içinde `bg-transparent` ile kenarsız kullanılır.
+// Yazı 17 pt: iOS Safari 16 pt altındaki alanlarda sayfayı yakınlaştırır.
 function Input({ className, type, ...props }: React.ComponentProps<"input">) {
   return (
     <InputPrimitive
       type={type}
       data-slot="input"
       className={cn(
-        "h-12 w-full min-w-0 rounded-xs border border-outline bg-transparent px-4 type-body-large text-on-surface transition-colors outline-none placeholder:text-on-surface-variant hover:border-on-surface focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary disabled:pointer-events-none disabled:border-on-surface/12 disabled:text-on-surface/38 aria-invalid:border-error aria-invalid:ring-1 aria-invalid:ring-inset aria-invalid:ring-error file:inline-flex file:h-6 file:border-0 file:bg-transparent file:type-label-large file:text-primary",
-        className
+        "h-11 w-full min-w-0 rounded-field bg-fill-tertiary px-4 text-body text-label caret-tint outline-none placeholder:text-label-tertiary",
+        "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-tint/60",
+        "disabled:pointer-events-none disabled:text-label-tertiary aria-invalid:outline-2 aria-invalid:-outline-offset-2 aria-invalid:outline-system-red",
+        "file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-subheadline file:font-semibold file:text-tint",
+        "[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [appearance:textfield]",
+        className,
       )}
       {...props}
     />

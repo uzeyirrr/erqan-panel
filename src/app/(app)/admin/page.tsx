@@ -1,14 +1,28 @@
 "use client"
 
 import { useState } from "react"
-import { Loader2, Play } from "lucide-react"
+import {
+  ArrowsClockwise,
+  BellRinging,
+  Buildings,
+  ChartLineUp,
+  Coins,
+  Hammer,
+  Handshake,
+  Key,
+  LockSimple,
+  Receipt,
+  UserPlus,
+  Users,
+} from "@phosphor-icons/react"
 import { api } from "@/lib/pb"
 import { STATUS_LABEL, num } from "@/lib/format"
 import type { PropertyStatus } from "@/lib/types"
 import { useAction, useLoad } from "@/hooks/use-data"
-import { ErrorState, Loading, Money, PageHeader, Panel, Stat } from "@/components/kit"
-import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { ErrorState, Loading, Money, PageHeader, Row, RowItem, Section, Tag } from "@/components/kit"
+import { Spinner } from "@/components/ui/spinner"
+
+type IconType = React.ComponentType<{ className?: string; weight?: "fill" | "regular" | "bold" }>
 
 const JOB_LABEL: Record<string, string> = {
   charges: "Kira tahsilatı",
@@ -17,137 +31,219 @@ const JOB_LABEL: Record<string, string> = {
   builds: "Tamamlanan inşaat",
 }
 
+const JOB_ICON: Record<string, [IconType, string]> = {
+  charges: [Receipt, "green"],
+  warnings: [BellRinging, "red"],
+  offers: [Handshake, "orange"],
+  builds: [Hammer, "indigo"],
+}
+
+const STATUS_DOT: Record<PropertyStatus, string> = {
+  empty: "var(--system-gray)",
+  rent: "var(--tint)",
+  rented: "var(--system-green)",
+  sale: "var(--system-orange)",
+  building: "var(--system-indigo)",
+}
+
+/** Sağlık / Fitness özet kutucuğu: renkli simge ve etiket, büyük değer, küçük not. */
+function Tile({
+  icon: Icon,
+  color,
+  label,
+  value,
+  hint,
+}: {
+  icon: IconType
+  color: string
+  label: string
+  value: React.ReactNode
+  hint?: React.ReactNode
+}) {
+  return (
+    <div className="min-w-0 rounded-card bg-grouped-secondary p-4">
+      <div className="flex items-center gap-1.5 text-footnote font-semibold" style={{ color }}>
+        <Icon weight="fill" className="size-4 shrink-0" />
+        <span className="truncate">{label}</span>
+      </div>
+      <div className="mt-2 truncate text-title2 text-label tabular-nums">{value}</div>
+      {hint && <div className="mt-0.5 truncate text-caption1 text-label-secondary">{hint}</div>}
+    </div>
+  )
+}
+
 export default function AdminOverviewPage() {
   const stats = useLoad(() => api.admin.stats(), [])
   const { run, isPending } = useAction()
   const [result, setResult] = useState<Record<string, { done: number; failed: number }> | null>(null)
 
   const s = stats.data
+  const running = isPending("maint")
+
+  async function runMaintenance() {
+    const res = await run("maint", () => api.admin.runMaintenance(), "Bakım işi çalıştı.")
+    if (res) {
+      setResult(res)
+      stats.reload()
+    }
+  }
+
+  const maintenance = (
+    <>
+      <Section
+        header="Bakım İşi"
+        footer="Bu iş normalde her saat başı kendiliğinden çalışır: dönemi gelen kiraları tahsil eder, bakiye uyarılarını gönderir, süresi dolan teklifleri iade eder, biten inşaatları tamamlar."
+      >
+        <Row
+          onClick={runMaintenance}
+          disabled={running}
+          icon={ArrowsClockwise}
+          iconColor="gray"
+          title="Bakım İşini Şimdi Çalıştır"
+          accessory={running ? <Spinner className="size-4 text-label-secondary" /> : undefined}
+        />
+      </Section>
+      {result && (
+        <Section header="Bakım İşi Sonucu">
+          {Object.entries(result).map(([k, v]) => {
+            const [icon, color] = JOB_ICON[k] || [ArrowsClockwise, "gray"]
+            return (
+              <Row
+                key={k}
+                icon={icon}
+                iconColor={color}
+                title={JOB_LABEL[k] || k}
+                accessory={
+                  <span className="flex shrink-0 items-center gap-2">
+                    {v.failed > 0 && <Tag tone="red" className="tabular-nums">{v.failed} hata</Tag>}
+                    <span className="text-body text-label-secondary tabular-nums">{num(v.done)}</span>
+                  </span>
+                }
+              />
+            )
+          })}
+        </Section>
+      )}
+      </>
+  )
 
   return (
     <>
-      <PageHeader
-        title="Genel bakış"
-        description="Sistemdeki kullanıcılar, kredi dolaşımı, mülkler ve kiralar."
-        actions={
-          <Button
-            variant="outline"
-            disabled={isPending("maint")}
-            onClick={async () => {
-              const res = await run("maint", () => api.admin.runMaintenance(), "Bakım işi çalıştı.")
-              if (res) {
-                setResult(res)
-                stats.reload()
-              }
-            }}
-          >
-            {isPending("maint") ? <Loader2 className="animate-spin" /> : <Play />}
-            Bakım işini şimdi çalıştır
-          </Button>
-        }
-      />
-
-      {result && (
-        <Panel title="Bakım işi sonucu" className="mb-4">
-          <p className="mb-3 type-body-medium text-muted-foreground">
-            Bu iş normalde her saat başı kendiliğinden çalışır: dönemi gelen kiraları tahsil eder, bakiye uyarılarını
-            gönderir, süresi dolan teklifleri iade eder, biten inşaatları tamamlar.
-          </p>
-          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {Object.entries(result).map(([k, v]) => (
-              <div key={k} className="rounded-lg border px-3 py-2">
-                <dt className="type-body-small text-muted-foreground">{JOB_LABEL[k] || k}</dt>
-                <dd className="figure type-title-large">
-                  {v.done}
-                  {v.failed > 0 && <span className="ml-2 type-body-medium text-loss">{v.failed} hata</span>}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </Panel>
-      )}
+      <PageHeader title="Genel Bakış" description="Sistemdeki kullanıcılar, kredi dolaşımı, mülkler ve kiralar." />
 
       {stats.error && <ErrorState message={stats.error} onRetry={stats.reload} />}
       {!s && stats.loading && <Loading />}
+      {!s && !stats.loading && <div className="grid gap-8">{maintenance}</div>}
 
       {s && (
-        <div className="grid gap-4 lg:grid-cols-3">
-          <section className="min-w-0 rounded-xl border bg-card p-5 lg:col-span-3">
-            <div className="grid grid-cols-2 gap-5 lg:grid-cols-5">
-              <Stat label="Kullanıcı" value={num(s.users)} hint={s.banned_users ? `${s.banned_users} engelli` : "Engelli yok"} />
-              <Stat label="Dolaşımdaki kredi" value={<Money value={s.credit_in_circulation} />} />
-              <Stat label="Tekliflerde bloke" value={<Money value={s.held_in_offers} />} hint={`${s.pending_offers} bekleyen teklif`} />
-              <Stat label="Komisyon geliri" value={<Money value={s.commission_revenue} className="text-gain" />} />
-              <Stat label="Davetle gelen" value={num(s.referred_users)} hint="kullanıcı" />
-              <Stat label="Mülk" value={num(s.properties)} />
-              <Stat label="Aktif kira" value={num(s.active_rentals)} />
-              <Stat label="Dönemlik kira hacmi" value={<Money value={s.monthly_rent_volume} />} />
-            </div>
-          </section>
+        <div className="grid gap-8">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Tile
+              icon={Users}
+              color="var(--system-blue)"
+              label="Kullanıcı"
+              value={num(s.users)}
+              hint={s.banned_users ? `${s.banned_users} engelli` : "Engelli yok"}
+            />
+            <Tile
+              icon={Coins}
+              color="var(--system-green)"
+              label="Dolaşımdaki kredi"
+              value={<Money value={s.credit_in_circulation} />}
+            />
+            <Tile
+              icon={LockSimple}
+              color="var(--system-orange)"
+              label="Tekliflerde bloke"
+              value={<Money value={s.held_in_offers} />}
+              hint={`${s.pending_offers} bekleyen teklif`}
+            />
+            <Tile
+              icon={ChartLineUp}
+              color="var(--system-mint)"
+              label="Komisyon geliri"
+              value={<Money value={s.commission_revenue} className="text-gain" />}
+            />
+            <Tile icon={UserPlus} color="var(--system-pink)" label="Davetle gelen" value={num(s.referred_users)} hint="kullanıcı" />
+            <Tile icon={Buildings} color="var(--system-indigo)" label="Mülk" value={num(s.properties)} />
+            <Tile icon={Key} color="var(--system-teal)" label="Aktif kira" value={num(s.active_rentals)} />
+            <Tile
+              icon={ArrowsClockwise}
+              color="var(--system-purple)"
+              label="Kira hacmi"
+              value={<Money value={s.monthly_rent_volume} />}
+              hint="Dönem başına"
+            />
+          </div>
 
-          <Panel title="Mülk tipleri" className="lg:col-span-2" bodyClassName="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="pl-4">Tip</TableHead>
-                    <TableHead className="text-right">Satılan</TableHead>
-                    <TableHead className="text-right">Kalan stok</TableHead>
-                    <TableHead className="pr-4 text-right">Satış oranı</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {s.by_type.map((t) => {
-                    const total = t.sold + t.stock
-                    const pct = total ? Math.round((t.sold / total) * 100) : 0
-                    return (
-                      <TableRow key={t.type}>
-                        <TableCell className="pl-4 font-medium">{t.type}</TableCell>
-                        <TableCell className="figure text-right">{num(t.sold)}</TableCell>
-                        <TableCell className="figure text-right">{num(t.stock)}</TableCell>
-                        <TableCell className="pr-4">
-                          <div className="flex items-center justify-end gap-2">
-                            <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
-                              <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
-                            </div>
-                            <span className="figure w-9 text-right type-body-small">{t.sold > 0 && pct === 0 ? "%<1" : `%${pct}`}</span>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </Panel>
+          <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
+            <div className="grid min-w-0 gap-8">
+              <Section header="Mülk Tipleri" footer="Satış oranı: satılan mülklerin toplam (satılan + kalan stok) içindeki payı.">
+                {s.by_type.length === 0 && (
+                  <RowItem className="text-subheadline text-label-secondary">Henüz mülk tipi yok.</RowItem>
+                )}
+                {s.by_type.map((t) => {
+                  const total = t.sold + t.stock
+                  const pct = total ? Math.round((t.sold / total) * 100) : 0
+                  return (
+                    <Row
+                      key={t.type}
+                      title={t.type}
+                      detail={<span className="inline-block min-w-11 tabular-nums">{t.sold > 0 && pct === 0 ? "%<1" : `%${pct}`}</span>}
+                    >
+                      <span className="mt-0.5 block text-subheadline text-label-secondary tabular-nums">
+                        {num(t.sold)} satılan · {num(t.stock)} kalan stok
+                      </span>
+                      <span
+                        role="progressbar"
+                        aria-label={`${t.type} satış oranı`}
+                        aria-valuenow={pct}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        className="mt-2 mb-0.5 block h-1.5 overflow-hidden rounded-full bg-fill-tertiary"
+                      >
+                        <span className="block h-full rounded-full bg-tint" style={{ width: `${pct}%` }} />
+                      </span>
+                    </Row>
+                  )
+                })}
+              </Section>
 
-          <Panel title="Mülk durumları">
-            <dl className="grid gap-2 type-body-medium">
-              {(Object.keys(STATUS_LABEL) as PropertyStatus[]).map((st) => (
-                <div key={st} className="flex justify-between">
-                  <dt className="text-muted-foreground">{STATUS_LABEL[st]}</dt>
-                  <dd className="figure font-medium">{num(s.by_status[st] || 0)}</dd>
-                </div>
-              ))}
-            </dl>
-          </Panel>
-
-          <Panel title="Ülkelere göre mülkler" className="lg:col-span-3">
-            {s.by_country.length === 0 ? (
-              <p className="type-body-medium text-muted-foreground">Henüz satılmış mülk yok.</p>
-            ) : (
-              <ul className="grid gap-x-8 gap-y-2 type-body-medium sm:grid-cols-2 lg:grid-cols-3">
-                {s.by_country.map((c) => (
-                  <li key={c.country} className="flex justify-between gap-2">
-                    <span>
-                      {c.flag} {c.country}
-                    </span>
-                    <span className="figure font-medium">{num(c.count)}</span>
-                  </li>
+              <Section header="Mülk Durumları">
+                {(Object.keys(STATUS_LABEL) as PropertyStatus[]).map((st) => (
+                  <Row
+                    key={st}
+                    leading={<span className="size-2.5 shrink-0 rounded-full" style={{ background: STATUS_DOT[st] }} />}
+                    title={STATUS_LABEL[st]}
+                    detail={<span className="tabular-nums">{num(s.by_status[st] || 0)}</span>}
+                  />
                 ))}
-              </ul>
-            )}
-          </Panel>
+              </Section>
+            </div>
+
+            <div className="grid min-w-0 gap-8">
+              <Section header="Ülkelere Göre Mülkler">
+                {s.by_country.length === 0 ? (
+                  <RowItem className="text-subheadline text-label-secondary">Henüz satılmış mülk yok.</RowItem>
+                ) : (
+                  s.by_country.map((c) => (
+                    <Row
+                      key={c.country}
+                      leading={
+                        <span aria-hidden="true" className="w-[30px] shrink-0 text-center text-title3 leading-none">
+                          {c.flag}
+                        </span>
+                      }
+                      title={c.country}
+                      detail={<span className="tabular-nums">{num(c.count)}</span>}
+                    />
+                  ))
+                )}
+              </Section>
+
+              {maintenance}
+            </div>
+          </div>
         </div>
       )}
     </>

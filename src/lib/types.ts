@@ -178,7 +178,7 @@ export type Notification = BaseRecord & {
 export type Settings = {
   general: {
     site_name: string
-    /** Material 3 renk şemasının ana (seed) rengi, #RRGGBB */
+    /** Uygulamanın vurgu (tint) rengi, #RRGGBB (Apple HIG "accent color") */
     brand_color: string
     currency: string
     maintenance: boolean

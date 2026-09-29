@@ -1,52 +1,49 @@
-import { Building2, Castle, House, HousePlus, LandPlot } from "lucide-react"
+import { Buildings, House, HouseLine, TreeEvergreen, TreePalm } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 
-// Mülk tipi renkleri Material 3 "custom color" rolleridir (src/lib/m3-theme.ts, ana renkle harmonize).
-type Role = "land" | "home" | "premium" | "villa"
-
-const ROLE_BY_COLOR: Record<string, Role> = {
-  emerald: "land",
-  green: "land",
-  blue: "home",
-  violet: "premium",
-  purple: "premium",
-  amber: "villa",
-  orange: "villa",
+// Mülk tipi renkleri iOS sistem renkleridir; açık/koyu görünüme kendiliğinden uyar.
+// Admin hazır bir renk anahtarı seçer (emerald, blue, violet, amber ...) veya #hex verir.
+const SYSTEM_BY_KEY: Record<string, string> = {
+  emerald: "green",
+  green: "green",
+  mint: "mint",
+  teal: "teal",
+  cyan: "cyan",
+  blue: "blue",
+  indigo: "indigo",
+  violet: "indigo",
+  purple: "purple",
+  pink: "pink",
+  red: "red",
+  amber: "orange",
+  orange: "orange",
+  yellow: "yellow",
+  brown: "brown",
+  gray: "gray",
 }
 
-function roleOf(color: string | undefined): Role | null {
-  return color ? ROLE_BY_COLOR[color] || null : null
-}
-
-/** Tipin vurgu rengi (nokta, ikon). Admin özel hex verdiyse o kullanılır. */
+/** Tipin vurgu rengi (nokta, ikon, kutucuk). */
 export function typeColor(color: string | undefined): string {
-  const role = roleOf(color)
-  if (role) return `var(--md-custom-${role})`
+  const system = color ? SYSTEM_BY_KEY[color] : undefined
+  if (system) return `var(--system-${system})`
   if (color && /^#|^rgb|^hsl|^oklch/.test(color)) return color
-  return "var(--md-sys-color-on-surface-variant)"
+  return "var(--system-gray)"
 }
 
-/** Tipin tonal konteyner renkleri (zemin + üzerindeki içerik). */
-export function typeContainer(color: string | undefined): { background: string; color: string } {
-  const role = roleOf(color)
-  if (role) return { background: `var(--md-custom-${role}-container)`, color: `var(--md-custom-on-${role}-container)` }
-  if (color && /^#/.test(color)) return { background: `color-mix(in srgb, ${color} 18%, var(--md-sys-color-surface))`, color }
-  return {
-    background: "var(--md-sys-color-surface-container-highest)",
-    color: "var(--md-sys-color-on-surface-variant)",
-  }
-}
-
-const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  land: LandPlot,
+const ICONS: Record<string, React.ComponentType<{ className?: string; weight?: "fill" | "regular" }>> = {
+  land: TreeEvergreen,
   home: House,
-  home_premium: HousePlus,
-  villa: Castle,
+  home_premium: HouseLine,
+  villa: TreePalm,
+}
+
+export function typeIcon(typeKey: string | undefined) {
+  return (typeKey && ICONS[typeKey]) || Buildings
 }
 
 /**
- * Görseli olmayan mülk için Material 3 yer tutucusu: tipin tonal konteyneri üzerinde tip ikonu.
- * (Eski parsel çiziminin API'si korunur; `id` ve `grid` artık kullanılmaz.)
+ * Görseli olmayan mülk için yer tutucu: tip renginde yumuşak bir degrade üzerinde beyaz,
+ * dolu tip simgesi (iOS uygulama simgesi / Ayarlar kutucuğu dili).
  */
 export function Parcel({
   typeKey,
@@ -59,15 +56,18 @@ export function Parcel({
   className?: string
   grid?: boolean
 }) {
-  const Icon = (typeKey && ICONS[typeKey]) || Building2
+  const Icon = (typeKey && ICONS[typeKey]) || Buildings
+  const c = typeColor(color)
   return (
     <div
       role="img"
       aria-hidden="true"
-      className={cn("flex items-center justify-center", className)}
-      style={typeContainer(color)}
+      className={cn("flex items-center justify-center text-white", className)}
+      style={{
+        background: `linear-gradient(160deg, color-mix(in oklab, ${c}, white 28%) 0%, ${c} 55%, color-mix(in oklab, ${c}, black 18%) 100%)`,
+      }}
     >
-      <Icon className="size-1/4 max-h-16 max-w-16 min-h-6 min-w-6 opacity-90" />
+      <Icon weight="fill" className="size-1/3 max-h-20 max-w-20 min-h-6 min-w-6 drop-shadow-[0_2px_6px_rgb(0_0_0/0.18)]" />
     </div>
   )
 }

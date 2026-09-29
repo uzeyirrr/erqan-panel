@@ -1,21 +1,43 @@
 "use client"
 
-import Link from "next/link"
 import { useState } from "react"
-import { Ban, Coins, Receipt, Search, ShieldCheck, ShieldOff, UserCheck } from "lucide-react"
+import { Coins, MagnifyingGlass, Prohibit, Receipt, ShieldCheck, ShieldSlash, UserCheck, UserCircle } from "@phosphor-icons/react"
 import { api, pb } from "@/lib/pb"
 import { date, money, num } from "@/lib/format"
 import type { User } from "@/lib/types"
 import { useAction, useLoad } from "@/hooks/use-data"
 import { useApp } from "@/components/app-provider"
-import { ConfirmDialog, ErrorState, Field, Loading, Money, PageHeader, Tag } from "@/components/kit"
-import { Button, buttonVariants } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import {
+  Avatar,
+  ConfirmDialog,
+  EmptyState,
+  ErrorState,
+  FieldRow,
+  Loading,
+  Money,
+  PageHeader,
+  Row,
+  SearchField,
+  Section,
+  Tag,
+} from "@/components/kit"
 import { Textarea } from "@/components/ui/textarea"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { FormDialog, NumberInput, Pager, TableWrap, useDebounced, usePageFor } from "../_components/admin-kit"
+import { Dialog, DialogBody, DialogContent, DialogHeader } from "@/components/ui/dialog"
+import { FormDialog, NumberInput, Pager, useDebounced, usePageFor } from "../_components/admin-kit"
 
 const PER_PAGE = 25
+
+type Patch = { role?: "user" | "admin"; banned?: boolean }
+
+function UserTags({ user }: { user: User }) {
+  if (user.role !== "admin" && !user.banned) return null
+  return (
+    <>
+      {user.role === "admin" && <Tag tone="tint">Yönetici</Tag>}
+      {user.banned && <Tag tone="red">Engelli</Tag>}
+    </>
+  )
+}
 
 export default function AdminUsersPage() {
   const { user: me, currency } = useApp()
@@ -31,124 +53,79 @@ export default function AdminUsersPage() {
     [page, query],
   )
   const { run, isPending } = useAction()
+  const [selected, setSelected] = useState<User | null>(null)
   const [credit, setCredit] = useState<{ user: User; amount: number; note: string } | null>(null)
-  const [confirm, setConfirm] = useState<{ user: User; patch: { role?: "user" | "admin"; banned?: boolean } } | null>(null)
+  const [confirm, setConfirm] = useState<{ user: User; patch: Patch } | null>(null)
 
   const users = list.data?.items || []
+
+  // Sayfadaki eylemler: ayrıntı sayfası kapanır, ilgili form / uyarı açılır.
+  function openCredit(u: User) {
+    setSelected(null)
+    setCredit({ user: u, amount: 0, note: "" })
+  }
+  function openConfirm(u: User, patch: Patch) {
+    setSelected(null)
+    setConfirm({ user: u, patch })
+  }
 
   return (
     <>
       <PageHeader title="Kullanıcılar" description="Bakiye düzeltme, yetki verme ve hesap engelleme." />
 
-      <div className="relative mb-4 max-w-sm">
-        <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          type="search"
-          placeholder="Ad veya e-posta ile ara"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          className="pl-8"
-          aria-label="Kullanıcı ara"
-        />
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
+        <SearchField value={q} onChange={setQ} placeholder="Ad veya e-posta ile ara" aria-label="Kullanıcı ara" className="lg:max-w-sm" />
+
+        {list.error && <ErrorState message={list.error} onRetry={list.reload} />}
+        {!list.data && list.loading && <Loading />}
+
+        {list.data &&
+          (users.length === 0 ? (
+            <EmptyState
+              icon={<MagnifyingGlass weight="bold" />}
+              title="Sonuç yok"
+              description="Aramanızla eşleşen kullanıcı yok."
+            />
+          ) : (
+            <div>
+              <Section header={`${num(list.data.totalItems)} kullanıcı`}>
+                {users.map((u) => (
+                  <Row
+                    key={u.id}
+                    onClick={() => setSelected(u)}
+                    leading={<Avatar name={u.name || u.email} />}
+                    accessory="chevron"
+                    detail={<Money value={u.credit} />}
+                  >
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span className="min-w-0 truncate text-body text-label">{u.name || "İsimsiz"}</span>
+                      <UserTags user={u} />
+                    </span>
+                    <span className="block truncate text-subheadline text-label-secondary">{u.email}</span>
+                  </Row>
+                ))}
+              </Section>
+              <Pager page={page} totalPages={list.data.totalPages} onPage={setPage} />
+            </div>
+          ))}
       </div>
 
-      {list.error && <ErrorState message={list.error} onRetry={list.reload} />}
-      {!list.data && list.loading && <Loading />}
-
-      {list.data && (
-        <>
-          <p className="mb-2 type-body-medium text-muted-foreground">{num(list.data.totalItems)} kullanıcı</p>
-          <TableWrap>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="pl-4">Kullanıcı</TableHead>
-                  <TableHead className="text-right">Bakiye</TableHead>
-                  <TableHead className="text-right">Kira sayısı</TableHead>
-                  <TableHead className="text-right">İtibar</TableHead>
-                  <TableHead>Kayıt</TableHead>
-                  <TableHead className="pr-4 text-right">İşlemler</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
-                      Aramanızla eşleşen kullanıcı yok.
-                    </TableCell>
-                  </TableRow>
-                )}
-                {users.map((u) => (
-                  <TableRow key={u.id} className={u.banned ? "opacity-70" : undefined}>
-                    <TableCell className="pl-4">
-                      <div className="flex items-center gap-2">
-                        <Link href={`/users/${u.id}`} className="font-medium hover:underline">
-                          {u.name || "İsimsiz"}
-                        </Link>
-                        {u.role === "admin" && <Tag className="bg-primary/10 text-primary">Yönetici</Tag>}
-                        {u.banned && <Tag className="bg-destructive/10 text-destructive">Engelli</Tag>}
-                      </div>
-                      <div className="type-body-small text-muted-foreground">{u.email}</div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Money value={u.credit} className="font-medium" />
-                    </TableCell>
-                    <TableCell className="figure text-right">{num(u.rent_count)}</TableCell>
-                    <TableCell className="figure text-right">{num(u.reputation)}</TableCell>
-                    <TableCell className="type-body-medium whitespace-nowrap">{date(u.created)}</TableCell>
-                    <TableCell className="pr-4">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="outline" size="sm" onClick={() => setCredit({ user: u, amount: 0, note: "" })}>
-                          <Coins />
-                          Bakiye
-                        </Button>
-                        <Link
-                          href={`/admin/transactions?user=${u.id}`}
-                          className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
-                          aria-label={`${u.name} işlemleri`}
-                          title="İşlemler"
-                        >
-                          <Receipt />
-                        </Link>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          disabled={u.id === me?.id}
-                          onClick={() => setConfirm({ user: u, patch: { role: u.role === "admin" ? "user" : "admin" } })}
-                          aria-label={u.role === "admin" ? "Yöneticiliği kaldır" : "Yönetici yap"}
-                          title={u.role === "admin" ? "Yöneticiliği kaldır" : "Yönetici yap"}
-                        >
-                          {u.role === "admin" ? <ShieldOff /> : <ShieldCheck />}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          disabled={u.id === me?.id}
-                          onClick={() => setConfirm({ user: u, patch: { banned: !u.banned } })}
-                          aria-label={u.banned ? "Engeli kaldır" : "Engelle"}
-                          title={u.banned ? "Engeli kaldır" : "Engelle"}
-                        >
-                          {u.banned ? <UserCheck /> : <Ban />}
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableWrap>
-          <Pager page={page} totalPages={list.data.totalPages} onPage={setPage} />
-        </>
-      )}
+      <UserSheet
+        user={selected}
+        isSelf={!!selected && selected.id === me?.id}
+        onOpenChange={(o) => !o && setSelected(null)}
+        onCredit={openCredit}
+        onPatch={openConfirm}
+      />
 
       {credit && (
         <FormDialog
           open
           onOpenChange={(o) => !o && setCredit(null)}
-          title={`${credit.user.name || credit.user.email} bakiyesi`}
-          description={`Şu anki bakiye: ${money(credit.user.credit, currency)}. Eklemek için pozitif, düşmek için negatif tutar girin.`}
+          title="Bakiye Düzelt"
+          description={`${credit.user.name || credit.user.email} için şu anki bakiye: ${money(credit.user.credit, currency)}. Eklemek için pozitif, düşmek için negatif tutar girin.`}
           pending={isPending("credit")}
-          submitLabel="Bakiyeyi güncelle"
+          submitLabel="Güncelle"
           onSubmit={async () => {
             if (!credit.amount) return
             const res = await run(
@@ -162,23 +139,31 @@ export default function AdminUsersPage() {
             }
           }}
         >
-          <Field label={`Tutar (${currency})`} htmlFor="c-amount" hint="Örnek: 500 veya -250">
-            <NumberInput id="c-amount" value={credit.amount} onChange={(v) => setCredit({ ...credit, amount: v })} autoFocus />
-          </Field>
-          {credit.amount !== 0 && (
-            <p className="type-body-medium">
-              Yeni bakiye: <span className="figure font-medium">{money(credit.user.credit + credit.amount, currency)}</span>
-            </p>
-          )}
-          <Field label="Açıklama" htmlFor="c-note" hint="Kullanıcıya bildirimde ve işlem geçmişinde gösterilir.">
+          <Section footer="Örnek: 500 veya -250">
+            <FieldRow label={`Tutar (${currency})`} htmlFor="c-amount">
+              <NumberInput inline id="c-amount" value={credit.amount} onChange={(v) => setCredit({ ...credit, amount: v })} autoFocus />
+            </FieldRow>
+            <Row
+              title="Yeni bakiye"
+              detail={
+                <span className={credit.amount !== 0 ? "font-semibold text-label" : undefined}>
+                  <Money value={credit.user.credit + credit.amount} />
+                </span>
+              }
+            />
+          </Section>
+          <Section header="Açıklama" footer="Kullanıcıya bildirimde ve işlem geçmişinde gösterilir." plain bodyClassName="p-0">
             <Textarea
               id="c-note"
+              aria-label="Açıklama"
               required
               rows={2}
+              placeholder="Gerekli"
               value={credit.note}
               onChange={(e) => setCredit({ ...credit, note: e.target.value })}
+              className="min-h-20 rounded-none bg-transparent focus-visible:outline-none"
             />
-          </Field>
+          </Section>
         </FormDialog>
       )}
 
@@ -203,12 +188,12 @@ export default function AdminUsersPage() {
         }
         confirmLabel={
           confirm?.patch.role === "admin"
-            ? "Yönetici yap"
+            ? "Yönetici Yap"
             : confirm?.patch.role === "user"
-              ? "Yöneticiliği kaldır"
+              ? "Yöneticiliği Kaldır"
               : confirm?.patch.banned
                 ? "Engelle"
-                : "Engeli kaldır"
+                : "Engeli Kaldır"
         }
         destructive={confirm?.patch.banned === true || confirm?.patch.role === "user"}
         pending={isPending("user")}
@@ -220,5 +205,78 @@ export default function AdminUsersPage() {
         }}
       />
     </>
+  )
+}
+
+/** Kullanıcı ayrıntısı (Kişiler kartı): bilgiler, bağlantılar ve yönetici eylemleri. */
+function UserSheet({
+  user,
+  isSelf,
+  onOpenChange,
+  onCredit,
+  onPatch,
+}: {
+  user: User | null
+  isSelf: boolean
+  onOpenChange: (open: boolean) => void
+  onCredit: (u: User) => void
+  onPatch: (u: User, patch: Patch) => void
+}) {
+  // Kapanış animasyonu sırasında içerik boşalmasın diye son kullanıcı tutulur.
+  const [last, setLast] = useState<User | null>(user)
+  if (user && user !== last) setLast(user)
+  const u = user || last
+
+  return (
+    <Dialog open={!!user} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader title={u ? u.name || "İsimsiz" : ""} />
+        {u && (
+          <DialogBody>
+            <div className="flex flex-col items-center gap-2 pt-1 text-center">
+              <Avatar name={u.name || u.email} className="size-20 text-title1" />
+              <div className="min-w-0">
+                <div className="truncate text-title2 text-label">{u.name || "İsimsiz"}</div>
+                <div className="truncate text-subheadline text-label-secondary">{u.email}</div>
+              </div>
+              <div className="flex gap-1.5 empty:hidden">
+                <UserTags user={u} />
+              </div>
+            </div>
+
+            <Section>
+              <Row title="Bakiye" detail={<Money value={u.credit} />} />
+              <Row title="Kira sayısı" detail={<span className="tabular-nums">{num(u.rent_count)}</span>} />
+              <Row title="İtibar" detail={<span className="tabular-nums">{num(u.reputation)}</span>} />
+              <Row title="Kayıt" detail={date(u.created)} />
+            </Section>
+
+            <Section>
+              <Row href={`/users/${u.id}`} icon={UserCircle} iconColor="blue" title="Profil" />
+              <Row href={`/admin/transactions?user=${u.id}`} icon={Receipt} iconColor="purple" title="İşlemler" />
+            </Section>
+
+            <Section footer={isSelf ? "Kendi hesabınızın yetkisini veya engel durumunu değiştiremezsiniz." : undefined}>
+              <Row onClick={() => onCredit(u)} icon={Coins} iconColor="green" title="Bakiye Düzelt" accessory="chevron" />
+              <Row
+                onClick={() => onPatch(u, { role: u.role === "admin" ? "user" : "admin" })}
+                disabled={isSelf}
+                icon={u.role === "admin" ? ShieldSlash : ShieldCheck}
+                iconColor={u.role === "admin" ? "gray" : "indigo"}
+                title={u.role === "admin" ? "Yöneticiliği Kaldır" : "Yönetici Yap"}
+              />
+              <Row
+                onClick={() => onPatch(u, { banned: !u.banned })}
+                disabled={isSelf}
+                icon={u.banned ? UserCheck : Prohibit}
+                iconColor={u.banned ? "green" : "red"}
+                title={u.banned ? "Engeli Kaldır" : "Engelle"}
+                destructive={!u.banned}
+              />
+            </Section>
+          </DialogBody>
+        )}
+      </DialogContent>
+    </Dialog>
   )
 }

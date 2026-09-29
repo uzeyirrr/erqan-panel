@@ -1,14 +1,16 @@
 import type { Metadata, Viewport } from "next"
-import { Roboto } from "next/font/google"
+import { Inter } from "next/font/google"
 import { AppProvider } from "@/components/app-provider"
 import { PwaRegister } from "@/components/pwa-register"
 import "./globals.css"
 
-// M3 varsayılan yazı tipi (erqan.com da Roboto kullanıyor)
-const roboto = Roboto({
-  variable: "--font-roboto",
+// Apple cihazlarda sistem yazı tipi (SF Pro) kullanılır; diğer platformlarda ona en yakın
+// açık kaynak yazı tipi olan Inter (optik boyutlandırma ile) devreye girer.
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "700"],
+  axes: ["opsz"],
+  display: "swap",
 })
 
 export const metadata: Metadata = {
@@ -21,15 +23,19 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
+  // Çentik ve ana ekran çubuğu altındaki güvenli alanlar env(safe-area-inset-*) ile yönetilir.
+  viewportFit: "cover",
+  width: "device-width",
+  initialScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f7f9ff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0f1419" },
+    { media: "(prefers-color-scheme: light)", color: "#f2f2f7" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
   ],
 }
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="tr" className={`${roboto.variable} h-full antialiased`} suppressHydrationWarning>
+    <html lang="tr" className={`${inter.variable} h-full`} suppressHydrationWarning>
       <body className="min-h-full">
         <AppProvider>{children}</AppProvider>
         <PwaRegister />

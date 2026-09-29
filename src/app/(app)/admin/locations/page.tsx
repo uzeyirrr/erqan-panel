@@ -1,19 +1,36 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Loader2, Pencil, Plus, Trash2 } from "lucide-react"
+import { Globe, MapPin, Plus } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 import { pb } from "@/lib/pb"
 import { invalidateCatalog } from "@/lib/catalog"
+import { num } from "@/lib/format"
 import type { City, CityStock, Continent, Country, PropertyType } from "@/lib/types"
 import { useAction, useLoad } from "@/hooks/use-data"
-import { ConfirmDialog, EmptyState, ErrorState, Field, Loading, PageHeader, Panel } from "@/components/kit"
+import {
+  BarButton,
+  Chips,
+  ConfirmDialog,
+  EmptyState,
+  ErrorState,
+  FieldRow,
+  Loading,
+  NativeSelect,
+  PageHeader,
+  Row,
+  Section,
+  inlineInput,
+} from "@/components/kit"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Spinner } from "@/components/ui/spinner"
+import { Segmented } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ActiveDot, FormDialog, NumberInput, SwitchRow, TableWrap } from "../_components/admin-kit"
+import { ActiveDot, FormDialog, NumberInput, SwitchRow } from "../_components/admin-kit"
 
 type Kind = "continents" | "countries" | "cities"
+type View = Kind | "stock"
 type Draft = {
   kind: Kind
   id?: string
@@ -26,6 +43,7 @@ type Draft = {
 }
 
 const KIND_LABEL: Record<Kind, string> = { continents: "kıta", countries: "ülke", cities: "şehir" }
+const KIND_TITLE: Record<Kind, string> = { continents: "Kıta", countries: "Ülke", cities: "Şehir" }
 
 async function loadAll() {
   const [continents, countries, cities, types, stock] = await Promise.all([
@@ -40,9 +58,22 @@ async function loadAll() {
 
 const stockKey = (city: string, type: string) => `${city}:${type}`
 
+/** Satır başında bayrak kutucuğu (Ayarlar simge kutucuğu boyutunda). */
+function FlagTile({ flag }: { flag?: string }) {
+  return (
+    <span aria-hidden="true" className="flex size-[30px] shrink-0 items-center justify-center rounded-[8px] bg-fill-tertiary text-[20px] leading-none">
+      {flag || "🏳️"}
+    </span>
+  )
+}
+
+/** Stok tablosundaki küçük dolgulu sayı alanı. */
+const stockInput = "ml-auto h-9 w-20 rounded-[10px] bg-fill-tertiary px-2.5 text-right tabular-nums"
+
 export default function AdminLocationsPage() {
   const data = useLoad(loadAll, [])
   const { run, isPending } = useAction()
+  const [view, setView] = useState<View>("countries")
   const [continentId, setContinentId] = useState("")
   const [countryId, setCountryId] = useState("")
   const [draft, setDraft] = useState<Draft | null>(null)
@@ -128,263 +159,382 @@ export default function AdminLocationsPage() {
     setEdits(next)
   }
 
+  function selectContinent(id: string) {
+    setContinentId(id)
+    setCountryId("")
+  }
+
+  function selectCountry(id: string) {
+    const c = d?.countries.find((x) => x.id === id)
+    if (c) setContinentId(c.continent)
+    setCountryId(id)
+    setEdits({})
+  }
+
+  const selectedContinent = d.continents.find((c) => c.id === continent)
   const selectedCountry = d.countries.find((c) => c.id === country)
+  const countryCount = (id: string) => d.countries.filter((c) => c.continent === id).length
+  const cityCount = (id: string) => d.cities.filter((c) => c.country === id).length
+  const cityStock = (cityId: string) => types.reduce((a, t) => a + (stockMap[stockKey(cityId, t.id)]?.stock ?? 0), 0)
+  const draftName = draft?.id ? [...d.continents, ...d.countries, ...d.cities].find((r) => r.id === draft.id)?.name : ""
+
+  // Üst çubuktaki "+" görünüme göre kıta, ülke veya şehir ekler.
+  const addKind: Kind = view === "stock" ? "cities" : view
+  const canAdd = addKind === "continents" || (addKind === "countries" ? !!continent : !!selectedCountry)
+
+  const countryPicker = (
+    <Section footer={view === "stock" ? "Stoklar seçili ülkenin şehirleri için gösterilir." : undefined}>
+      <FieldRow label="Ülke" htmlFor="loc-country">
+        <NativeSelect inline id="loc-country" value={country} onChange={(e) => selectCountry(e.target.value)} disabled={!d.countries.length}>
+          {!d.countries.length && <option value="">Ülke yok</option>}
+          {d.continents.map((ct) => {
+            const list = d.countries.filter((c) => c.continent === ct.id)
+            if (!list.length) return null
+            return (
+              <optgroup key={ct.id} label={ct.name}>
+                {list.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.flag} {c.name}
+                  </option>
+                ))}
+              </optgroup>
+            )
+          })}
+        </NativeSelect>
+      </FieldRow>
+    </Section>
+  )
+
+  const noCountry = (
+    <EmptyState
+      icon={<Globe weight="fill" />}
+      title="Ülke yok"
+      description="Şehirleri ve stokları görmek için önce bir ülke ekleyin."
+      action={
+        <Button variant="secondary" onClick={() => setView("countries")}>
+          Ülkelere Git
+        </Button>
+      }
+    />
+  )
 
   return (
     <>
       <PageHeader
-        title="Konumlar ve stok"
+        title="Konumlar ve Stok"
         description="Kıta, ülke ve şehirler ile her şehirde satışa sunulan mülk adetleri. Şehir çarpanı, o şehirdeki satış fiyatını belirler."
+        actions={
+          view === "stock" && dirtyCount > 0 ? (
+            <Button size="sm" className="h-11 px-4" onClick={saveStock} disabled={isPending("stock")}>
+              {isPending("stock") ? <Spinner className="size-4" /> : "Kaydet"}
+            </Button>
+          ) : canAdd ? (
+            <BarButton standalone label={`${KIND_TITLE[addKind]} ekle`} icon={Plus} onClick={() => openDraft(addKind)} />
+          ) : undefined
+        }
       />
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        {d.continents.map((c) => (
-          <div key={c.id} className="flex items-center">
-            <button
-              type="button"
-              onClick={() => {
-                setContinentId(c.id)
-                setCountryId("")
-              }}
-              aria-pressed={c.id === continent}
-              className={cn(
-                "rounded-l-full border py-1.5 pr-2 pl-3 type-body-medium",
-                c.id === continent ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-muted",
-                !c.active && "opacity-60",
-              )}
-            >
-              {c.name}
-            </button>
-            <button
-              type="button"
-              onClick={() => openDraft("continents", c)}
-              className={cn(
-                "rounded-r-full border border-l-0 py-1.5 pr-2.5 pl-1.5",
-                c.id === continent ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-muted",
-              )}
-              aria-label={`${c.name} kıtasını düzenle`}
-            >
-              <Pencil className="size-3.5" />
-            </button>
-          </div>
-        ))}
-        <Button variant="outline" size="sm" onClick={() => openDraft("continents")}>
-          <Plus />
-          Kıta ekle
-        </Button>
-      </div>
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
+        <Segmented
+          aria-label="Görünüm"
+          value={view}
+          onValueChange={setView}
+          items={[
+            { value: "continents", label: "Kıtalar" },
+            { value: "countries", label: "Ülkeler" },
+            { value: "cities", label: "Şehirler" },
+            { value: "stock", label: "Stok" },
+          ]}
+        />
 
-      <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
-        <Panel
-          title="Ülkeler"
-          actions={
-            <Button variant="ghost" size="sm" onClick={() => openDraft("countries")} disabled={!continent}>
-              <Plus />
-              Ekle
-            </Button>
-          }
-          bodyClassName="p-2"
-        >
-          {countries.length === 0 ? (
-            <p className="p-2 type-body-medium text-muted-foreground">Bu kıtada ülke yok.</p>
-          ) : (
-            <ul className="grid gap-0.5">
-              {countries.map((c) => (
-                <li key={c.id} className="flex items-center">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCountryId(c.id)
-                      setEdits({})
-                    }}
-                    aria-current={c.id === country ? "true" : undefined}
-                    className={cn(
-                      "flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left type-body-medium",
-                      c.id === country ? "bg-muted font-medium" : "hover:bg-muted/60",
-                      !c.active && "text-muted-foreground",
-                    )}
-                  >
-                    <span>{c.flag}</span>
-                    <span className="truncate">{c.name}</span>
-                    {!c.active && <span className="type-body-small">(pasif)</span>}
-                  </button>
-                  <Button variant="ghost" size="icon-sm" onClick={() => openDraft("countries", c)} aria-label={`${c.name} ülkesini düzenle`}>
-                    <Pencil />
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Panel>
+        {view === "continents" && (
+          <Section
+            header={`${num(d.continents.length)} kıta`}
+            footer="Pasif kıtalardaki konumlarda yeni mülk satın alınamaz."
+          >
+            {d.continents.map((c) => (
+              <Row
+                key={c.id}
+                onClick={() => openDraft("continents", c)}
+                icon={Globe}
+                iconColor={c.active ? "blue" : "gray"}
+                title={c.name}
+                subtitle={`${num(countryCount(c.id))} ülke`}
+                detail={<ActiveDot active={c.active} />}
+                accessory="chevron"
+              />
+            ))}
+            <AddRow label="Kıta Ekle" onClick={() => openDraft("continents")} />
+          </Section>
+        )}
 
-        <div className="min-w-0">
-          {!selectedCountry ? (
-            <EmptyState title="Ülke seçin" description="Şehirleri ve stokları görmek için soldan bir ülke seçin ya da yeni ülke ekleyin." />
+        {view === "countries" && (
+          <>
+            {d.continents.length > 0 ? (
+              <Chips
+                aria-label="Kıta"
+                value={continent}
+                onChange={selectContinent}
+                items={d.continents.map((c) => ({ value: c.id, label: c.name, count: countryCount(c.id) }))}
+              />
+            ) : (
+              <EmptyState
+                icon={<Globe weight="fill" />}
+                title="Kıta yok"
+                description="Ülke eklemek için önce bir kıta ekleyin."
+                action={<Button onClick={() => openDraft("continents")}>Kıta Ekle</Button>}
+              />
+            )}
+            {selectedContinent && (
+              <Section header={`${selectedContinent.name} · ${num(countries.length)} ülke`}>
+                {countries.length === 0 && <Row title={<span className="text-label-secondary">Bu kıtada ülke yok.</span>} />}
+                {countries.map((c) => (
+                  <Row
+                    key={c.id}
+                    onClick={() => openDraft("countries", c)}
+                    leading={<FlagTile flag={c.flag} />}
+                    title={c.name}
+                    subtitle={[c.code, `${num(cityCount(c.id))} şehir`].filter(Boolean).join(" · ")}
+                    detail={<ActiveDot active={c.active} />}
+                    accessory="chevron"
+                  />
+                ))}
+                <AddRow label="Ülke Ekle" onClick={() => openDraft("countries")} />
+              </Section>
+            )}
+          </>
+        )}
+
+        {view === "cities" &&
+          (!selectedCountry ? (
+            noCountry
           ) : (
             <>
-              <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-                <h2 className="type-title-large">
-                  {selectedCountry.flag} {selectedCountry.name} şehirleri
-                </h2>
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex items-center gap-1.5">
-                    <NumberInput aria-label="Toplu stok" step="1" min={0} value={bulk} onChange={setBulk} className="h-8 w-20" />
-                    <Button variant="outline" size="sm" onClick={() => setAll(bulk)} disabled={!cities.length}>
-                      Tüm stokları bu değere ayarla
-                    </Button>
-                  </div>
-                  <Button size="sm" onClick={() => openDraft("cities")}>
-                    <Plus />
-                    Şehir ekle
-                  </Button>
-                </div>
-              </div>
+              {countryPicker}
+              <Section
+                header={`${selectedCountry.name} · ${num(cities.length)} şehir`}
+                footer="Çarpan, şehirdeki satış fiyatını belirler: 1 = taban fiyat."
+              >
+                {cities.length === 0 && (
+                  <Row title={<span className="text-label-secondary">Bu ülkede şehir yok. Satış yapılabilmesi için en az bir şehir ekleyin.</span>} />
+                )}
+                {cities.map((c) => (
+                  <Row
+                    key={c.id}
+                    onClick={() => openDraft("cities", c)}
+                    icon={MapPin}
+                    iconColor={c.active ? "red" : "gray"}
+                    title={c.name}
+                    subtitle={
+                      <span className="flex flex-wrap items-center gap-x-1.5">
+                        <ActiveDot active={c.active} />
+                        <span className="text-footnote">· {num(cityStock(c.id))} stok</span>
+                      </span>
+                    }
+                    detail={<span className="tabular-nums">×{c.price_multiplier}</span>}
+                    accessory="chevron"
+                  />
+                ))}
+                <AddRow label="Şehir Ekle" onClick={() => openDraft("cities")} />
+              </Section>
+            </>
+          ))}
 
+        {view === "stock" &&
+          (!selectedCountry ? (
+            noCountry
+          ) : (
+            <>
+              {countryPicker}
               {cities.length === 0 ? (
-                <EmptyState title="Bu ülkede şehir yok" description="Satış yapılabilmesi için en az bir şehir ekleyin." />
+                <EmptyState
+                  icon={<MapPin weight="fill" />}
+                  title="Bu ülkede şehir yok"
+                  description="Satış yapılabilmesi için en az bir şehir ekleyin."
+                  action={<Button onClick={() => openDraft("cities")}>Şehir Ekle</Button>}
+                />
               ) : (
-                <TableWrap>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="pl-4">Şehir</TableHead>
-                        <TableHead className="text-right">Çarpan</TableHead>
-                        {types.map((t) => (
-                          <TableHead key={t.id} className="text-right">
-                            {t.name} stoğu
-                          </TableHead>
-                        ))}
-                        <TableHead className="pr-4 text-right">
-                          <span className="sr-only">İşlemler</span>
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {cities.map((c) => (
-                        <TableRow key={c.id}>
-                          <TableCell className="pl-4">
-                            <div className="font-medium">{c.name}</div>
-                            <ActiveDot active={c.active} />
-                          </TableCell>
-                          <TableCell className="figure text-right">×{c.price_multiplier}</TableCell>
-                          {types.map((t) => {
-                            const k = stockKey(c.id, t.id)
-                            return (
-                              <TableCell key={t.id} className="text-right">
-                                <NumberInput
-                                  aria-label={`${c.name} ${t.name} stoğu`}
-                                  step="1"
-                                  min={0}
-                                  value={stockValue(c.id, t.id)}
-                                  onChange={(v) => setEdits((e) => ({ ...e, [k]: v }))}
-                                  className={cn("ml-auto h-8 w-20 text-right", k in edits && "border-primary")}
-                                />
-                              </TableCell>
-                            )
-                          })}
-                          <TableCell className="pr-4 text-right whitespace-nowrap">
-                            <Button variant="ghost" size="icon-sm" onClick={() => openDraft("cities", c)} aria-label={`${c.name} şehrini düzenle`}>
-                              <Pencil />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              onClick={() => setDeleting({ kind: "cities", id: c.id, name: c.name })}
-                              aria-label={`${c.name} şehrini sil`}
-                            >
-                              <Trash2 />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableWrap>
-              )}
+                <>
+                  <Section header="Toplu Ayar" footer="Tüm şehir ve tiplerin stoğu bu değere ayarlanır; kaydedene kadar uygulanmaz.">
+                    <FieldRow label="Tüm stoklar" htmlFor="loc-bulk">
+                      <div className="flex items-center gap-2">
+                        <NumberInput id="loc-bulk" step="1" min={0} value={bulk} onChange={setBulk} className={stockInput} />
+                        <Button variant="secondary" size="sm" onClick={() => setAll(bulk)}>
+                          Uygula
+                        </Button>
+                      </div>
+                    </FieldRow>
+                  </Section>
 
-              {dirtyCount > 0 && (
-                <div className="mt-3 flex items-center justify-end gap-2">
-                  <span className="type-body-medium text-muted-foreground">{dirtyCount} stok değişikliği kaydedilmedi.</span>
-                  <Button variant="outline" onClick={() => setEdits({})} disabled={isPending("stock")}>
-                    Geri al
-                  </Button>
-                  <Button onClick={saveStock} disabled={isPending("stock")}>
-                    {isPending("stock") && <Loader2 className="animate-spin" />}
-                    Stokları kaydet
-                  </Button>
-                </div>
+                  <Section
+                    header={`${selectedCountry.flag} ${selectedCountry.name} stokları`}
+                    plain
+                    bodyClassName="p-0"
+                    footer={
+                      dirtyCount > 0 ? (
+                        <span className="flex flex-wrap items-center gap-x-2">
+                          <span>{num(dirtyCount)} stok değişikliği kaydedilmedi.</span>
+                          <Button variant="link" className="text-footnote" onClick={() => setEdits({})} disabled={isPending("stock")}>
+                            Geri Al
+                          </Button>
+                        </span>
+                      ) : (
+                        "Değiştirdiğiniz hücreler vurgulanır."
+                      )
+                    }
+                  >
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="sticky left-0 z-10 bg-grouped-secondary pl-4">Şehir</TableHead>
+                          {types.map((t) => (
+                            <TableHead key={t.id} className="text-right">
+                              {t.name}
+                            </TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {cities.map((c) => (
+                          <TableRow key={c.id} className="hover:bg-transparent">
+                            <TableCell className="sticky left-0 z-10 bg-grouped-secondary py-2 pl-4">
+                              <button
+                                type="button"
+                                onClick={() => openDraft("cities", c)}
+                                className="block max-w-36 truncate text-left text-body text-label outline-none press-dim focus-visible:underline"
+                                aria-label={`${c.name} şehrini düzenle`}
+                              >
+                                {c.name}
+                              </button>
+                              <span className="flex items-center gap-1.5 text-footnote text-label-secondary">
+                                <span className={cn("size-1.5 rounded-full", c.active ? "bg-system-green" : "bg-system-gray3")} />
+                                <span className="tabular-nums">×{c.price_multiplier}</span>
+                              </span>
+                            </TableCell>
+                            {types.map((t) => {
+                              const k = stockKey(c.id, t.id)
+                              return (
+                                <TableCell key={t.id} className="py-2 text-right">
+                                  <NumberInput
+                                    aria-label={`${c.name} ${t.name} stoğu`}
+                                    step="1"
+                                    min={0}
+                                    value={stockValue(c.id, t.id)}
+                                    onChange={(v) => setEdits((e) => ({ ...e, [k]: v }))}
+                                    className={cn(stockInput, k in edits && "bg-tint/15 font-semibold text-tint")}
+                                  />
+                                </TableCell>
+                              )
+                            })}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </Section>
+
+                  {dirtyCount > 0 && (
+                    <Button size="lg" className="w-full sm:w-auto sm:justify-self-end" onClick={saveStock} disabled={isPending("stock")}>
+                      {isPending("stock") && <Spinner className="size-4" />}
+                      Stokları Kaydet
+                    </Button>
+                  )}
+                </>
               )}
             </>
-          )}
-        </div>
+          ))}
       </div>
 
       {draft && (
         <FormDialog
           open
           onOpenChange={(o) => !o && setDraft(null)}
-          title={draft.id ? `${draft.name} düzenle` : `Yeni ${KIND_LABEL[draft.kind]}`}
+          title={draft.id ? draftName || KIND_TITLE[draft.kind] : `Yeni ${KIND_TITLE[draft.kind]}`}
           description={
             draft.kind === "cities" && selectedCountry
-              ? `${selectedCountry.name} içinde`
+              ? `${selectedCountry.flag} ${selectedCountry.name} içinde`
               : draft.kind === "countries"
-                ? d.continents.find((c) => c.id === continent)?.name
+                ? selectedContinent?.name
                 : undefined
           }
           pending={isPending("draft")}
           onSubmit={saveDraft}
         >
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Ad" htmlFor="loc-name" className="sm:col-span-2">
-              <Input id="loc-name" required value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
-            </Field>
+          <Section
+            footer={
+              draft.kind === "countries"
+                ? "Ülke kodu iki veya üç harftir (TR, DE...). Bayrak alanına bayrak emojisi girin."
+                : draft.kind === "cities"
+                  ? "Fiyat çarpanı: 1 = taban fiyat, 1.5 = yüzde 50 daha pahalı."
+                  : undefined
+            }
+          >
+            <FieldRow label="Ad" htmlFor="loc-name">
+              <Input
+                id="loc-name"
+                required
+                placeholder="Gerekli"
+                value={draft.name}
+                onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                className={inlineInput}
+              />
+            </FieldRow>
             {draft.kind === "countries" && (
               <>
-                <Field label="Ülke kodu" htmlFor="loc-code" hint="İki veya üç harf (TR, DE...).">
-                  <Input id="loc-code" maxLength={3} value={draft.code} onChange={(e) => setDraft({ ...draft, code: e.target.value })} />
-                </Field>
-                <Field label="Bayrak" htmlFor="loc-flag" hint="Bayrak emojisi.">
-                  <Input id="loc-flag" maxLength={16} value={draft.flag} onChange={(e) => setDraft({ ...draft, flag: e.target.value })} />
-                </Field>
+                <FieldRow label="Ülke kodu" htmlFor="loc-code">
+                  <Input
+                    id="loc-code"
+                    maxLength={3}
+                    placeholder="TR"
+                    autoCapitalize="characters"
+                    value={draft.code}
+                    onChange={(e) => setDraft({ ...draft, code: e.target.value })}
+                    className={inlineInput}
+                  />
+                </FieldRow>
+                <FieldRow label="Bayrak" htmlFor="loc-flag">
+                  <Input
+                    id="loc-flag"
+                    maxLength={16}
+                    placeholder="🇹🇷"
+                    value={draft.flag}
+                    onChange={(e) => setDraft({ ...draft, flag: e.target.value })}
+                    className={inlineInput}
+                  />
+                </FieldRow>
               </>
             )}
             {draft.kind === "cities" && (
-              <Field label="Fiyat çarpanı" htmlFor="loc-mult" hint="1 = taban fiyat, 1.5 = yüzde 50 daha pahalı.">
+              <FieldRow label="Fiyat çarpanı" htmlFor="loc-mult">
                 <NumberInput
+                  inline
                   id="loc-mult"
                   min={0.01}
                   step="0.01"
                   value={draft.price_multiplier}
                   onChange={(v) => setDraft({ ...draft, price_multiplier: v })}
                 />
-              </Field>
+              </FieldRow>
             )}
-            <Field label="Sıra" htmlFor="loc-sort">
-              <NumberInput id="loc-sort" step="1" value={draft.sort} onChange={(v) => setDraft({ ...draft, sort: v })} />
-            </Field>
-            <div className="sm:col-span-2">
-              <SwitchRow
-                id="loc-active"
-                label="Satışa açık"
-                hint="Pasif konumlarda yeni mülk satın alınamaz; mevcut mülkler etkilenmez."
-                checked={draft.active}
-                onChange={(v) => setDraft({ ...draft, active: v })}
+            <FieldRow label="Sıra" htmlFor="loc-sort">
+              <NumberInput inline id="loc-sort" step="1" value={draft.sort} onChange={(v) => setDraft({ ...draft, sort: v })} />
+            </FieldRow>
+          </Section>
+
+          <Section footer="Pasif konumlarda yeni mülk satın alınamaz; mevcut mülkler etkilenmez.">
+            <SwitchRow id="loc-active" label="Satışa açık" checked={draft.active} onChange={(v) => setDraft({ ...draft, active: v })} />
+          </Section>
+
+          {draft.id && (
+            <Section>
+              <Row
+                destructive
+                title={`Bu ${KIND_LABEL[draft.kind]} kaydını sil`}
+                onClick={() => {
+                  setDeleting({ kind: draft.kind, id: draft.id!, name: draftName || draft.name })
+                  setDraft(null)
+                }}
               />
-            </div>
-          </div>
-          {draft.id && draft.kind !== "cities" && (
-            <Button
-              type="button"
-              variant="ghost"
-              className="justify-self-start text-destructive"
-              onClick={() => {
-                setDeleting({ kind: draft.kind, id: draft.id!, name: draft.name })
-                setDraft(null)
-              }}
-            >
-              <Trash2 />
-              Bu {KIND_LABEL[draft.kind]} kaydını sil
-            </Button>
+            </Section>
           )}
         </FormDialog>
       )}
@@ -410,5 +560,20 @@ export default function AdminLocationsPage() {
         }}
       />
     </>
+  )
+}
+
+/** Listenin sonundaki mavi "ekle" satırı (iOS: "Dil Ekle…"). */
+function AddRow({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <Row
+      onClick={onClick}
+      leading={
+        <span aria-hidden="true" className="flex size-[30px] shrink-0 items-center justify-center text-tint">
+          <Plus weight="bold" className="size-5" />
+        </span>
+      }
+      title={label}
+    />
   )
 }

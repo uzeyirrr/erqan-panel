@@ -1,21 +1,39 @@
 "use client"
 
-import Link from "next/link"
 import { useState } from "react"
-import { ArrowLeftRight, Search, Trash2 } from "lucide-react"
+import { ArrowSquareOut, ArrowsLeftRight, Check, MagnifyingGlass, Trash } from "@phosphor-icons/react"
+import { cn } from "@/lib/utils"
 import { api, pb } from "@/lib/pb"
 import { loadCatalog, PROPERTY_EXPAND } from "@/lib/catalog"
 import { STATUS_LABEL, num } from "@/lib/format"
 import type { Property, PropertyStatus, User } from "@/lib/types"
 import { useAction, useLoad } from "@/hooks/use-data"
-import { ConfirmDialog, ErrorState, Field, Loading, Money, NativeSelect, PageHeader, StatusBadge } from "@/components/kit"
-import { Parcel } from "@/components/parcel"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { FormDialog, Pager, TableWrap, useDebounced, usePageFor } from "../_components/admin-kit"
+import {
+  Avatar,
+  Chips,
+  ConfirmDialog,
+  EmptyState,
+  ErrorState,
+  Loading,
+  Money,
+  NativeSelect,
+  PageHeader,
+  Row,
+  SearchField,
+  Section,
+  StatusBadge,
+} from "@/components/kit"
+import { PropertyVisual } from "@/components/property-card"
+import { Dialog, DialogBody, DialogContent, DialogHeader } from "@/components/ui/dialog"
+import { FormDialog, Pager, useDebounced, usePageFor } from "../_components/admin-kit"
 
 const PER_PAGE = 25
+
+const ownerName = (p: Property) => p.expand?.owner?.name || p.expand?.owner?.email || "Bilinmiyor"
+const placeName = (p: Property) => {
+  const c = p.expand?.city
+  return c ? [c.expand?.country?.flag, c.name].filter(Boolean).join(" ") : ""
+}
 
 export default function AdminPropertiesPage() {
   const catalog = useLoad(() => loadCatalog(true), [])
@@ -51,6 +69,7 @@ export default function AdminPropertiesPage() {
   )
 
   const { run, isPending } = useAction()
+  const [selected, setSelected] = useState<Property | null>(null)
   const [transfer, setTransfer] = useState<{ property: Property; email: string; candidates: User[]; owner: string } | null>(null)
   const [deleting, setDeleting] = useState<Property | null>(null)
 
@@ -69,146 +88,109 @@ export default function AdminPropertiesPage() {
   }
 
   const cat = catalog.data
+  const candidates = transfer ? transfer.candidates.filter((u) => u.id !== transfer.property.owner) : []
 
   return (
     <>
       <PageHeader title="Mülkler" description="Sistemdeki tüm mülkler. Sahiplik devri ve silme buradan yapılır." />
 
-      <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="relative">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Mülk adıyla ara"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            className="h-9 pl-8"
-            aria-label="Mülk ara"
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
+        <div className="grid min-w-0 gap-3">
+          <SearchField value={q} onChange={setQ} placeholder="Mülk adıyla ara" aria-label="Mülk ara" className="lg:max-w-sm" />
+          <Chips
+            aria-label="Durum"
+            value={status}
+            onChange={setStatus}
+            items={[
+              { value: "", label: "Tümü" },
+              ...(Object.keys(STATUS_LABEL) as PropertyStatus[]).map((s) => ({ value: s, label: STATUS_LABEL[s] })),
+            ]}
           />
+          <div className="grid grid-cols-2 gap-2 lg:max-w-md">
+            <NativeSelect value={type} onChange={(e) => setType(e.target.value)} aria-label="Tip">
+              <option value="">Tüm tipler</option>
+              {cat?.types.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </NativeSelect>
+            <NativeSelect value={city} onChange={(e) => setCity(e.target.value)} aria-label="Şehir">
+              <option value="">Tüm şehirler</option>
+              {cat?.countries.map((co) => (
+                <optgroup key={co.id} label={`${co.flag} ${co.name}`}>
+                  {cat.cities
+                    .filter((c) => c.country === co.id)
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                </optgroup>
+              ))}
+            </NativeSelect>
+          </div>
         </div>
-        <NativeSelect value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Durum">
-          <option value="">Tüm durumlar</option>
-          {(Object.keys(STATUS_LABEL) as PropertyStatus[]).map((s) => (
-            <option key={s} value={s}>
-              {STATUS_LABEL[s]}
-            </option>
-          ))}
-        </NativeSelect>
-        <NativeSelect value={type} onChange={(e) => setType(e.target.value)} aria-label="Tip">
-          <option value="">Tüm tipler</option>
-          {cat?.types.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </NativeSelect>
-        <NativeSelect value={city} onChange={(e) => setCity(e.target.value)} aria-label="Şehir">
-          <option value="">Tüm şehirler</option>
-          {cat?.countries.map((co) => (
-            <optgroup key={co.id} label={`${co.flag} ${co.name}`}>
-              {cat.cities
-                .filter((c) => c.country === co.id)
-                .map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
+
+        {list.error && <ErrorState message={list.error} onRetry={list.reload} />}
+        {!list.data && list.loading && <Loading />}
+
+        {list.data &&
+          (list.data.items.length === 0 ? (
+            <EmptyState icon={<MagnifyingGlass weight="bold" />} title="Sonuç yok" description="Filtrelerle eşleşen mülk yok." />
+          ) : (
+            <div className="min-w-0">
+              <Section header={`${num(list.data.totalItems)} mülk`}>
+                {list.data.items.map((p) => (
+                  <Row
+                    key={p.id}
+                    onClick={() => setSelected(p)}
+                    leading={
+                      <span className="my-2 size-12 shrink-0 overflow-hidden rounded-[10px] bg-fill-tertiary">
+                        <PropertyVisual property={p} className="size-full" />
+                      </span>
+                    }
+                    accessory="chevron"
+                  >
+                    <span className="block truncate text-body text-label">{p.name}</span>
+                    <span className="block truncate text-subheadline text-label-secondary">
+                      {[ownerName(p), placeName(p), p.expand?.type?.name].filter(Boolean).join(" · ")}
+                    </span>
+                    <span className="mt-1 flex min-w-0 items-center gap-2 text-footnote text-label-secondary">
+                      <StatusBadge status={p.status} />
+                      <span className="truncate tabular-nums">
+                        {p.tenant_count}/{p.tenant_limit} kiracı · <Money value={p.invested} /> yatırım
+                      </span>
+                    </span>
+                  </Row>
                 ))}
-            </optgroup>
+              </Section>
+              <Pager page={page} totalPages={list.data.totalPages} onPage={setPage} />
+            </div>
           ))}
-        </NativeSelect>
       </div>
 
-      {list.error && <ErrorState message={list.error} onRetry={list.reload} />}
-      {!list.data && list.loading && <Loading />}
-
-      {list.data && (
-        <>
-          <p className="mb-2 type-body-medium text-muted-foreground">{num(list.data.totalItems)} mülk</p>
-          <TableWrap>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="pl-4">Mülk</TableHead>
-                  <TableHead>Sahibi</TableHead>
-                  <TableHead>Durum</TableHead>
-                  <TableHead className="text-right">Kiracı</TableHead>
-                  <TableHead className="text-right">Yatırım</TableHead>
-                  <TableHead className="pr-4 text-right">İşlemler</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {list.data.items.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
-                      Filtrelerle eşleşen mülk yok.
-                    </TableCell>
-                  </TableRow>
-                )}
-                {list.data.items.map((p) => {
-                  const t = p.expand?.type
-                  const c = p.expand?.city
-                  return (
-                    <TableRow key={p.id}>
-                      <TableCell className="pl-4">
-                        <div className="flex items-center gap-3">
-                          <Parcel id={p.id} typeKey={t?.key} color={t?.color} className="size-10 shrink-0 rounded-md" />
-                          <div className="min-w-0">
-                            <Link href={`/properties/${p.id}`} className="font-medium hover:underline">
-                              {p.name}
-                            </Link>
-                            <div className="type-body-small text-muted-foreground">
-                              {t?.name}, {c?.expand?.country?.flag} {c?.name}
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="type-body-medium">
-                        <Link href={`/users/${p.owner}`} className="hover:underline">
-                          {p.expand?.owner?.name || p.expand?.owner?.email || "Bilinmiyor"}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={p.status} />
-                      </TableCell>
-                      <TableCell className="figure text-right">
-                        {p.tenant_count}/{p.tenant_limit}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Money value={p.invested} />
-                      </TableCell>
-                      <TableCell className="pr-4">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setTransfer({ property: p, email: "", candidates: [], owner: "" })}
-                          >
-                            <ArrowLeftRight />
-                            Devret
-                          </Button>
-                          <Button variant="ghost" size="icon-sm" onClick={() => setDeleting(p)} aria-label={`${p.name} sil`}>
-                            <Trash2 />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </TableWrap>
-          <Pager page={page} totalPages={list.data.totalPages} onPage={setPage} />
-        </>
-      )}
+      <PropertySheet
+        property={selected}
+        onOpenChange={(o) => !o && setSelected(null)}
+        onTransfer={(p) => {
+          setSelected(null)
+          setTransfer({ property: p, email: "", candidates: [], owner: "" })
+        }}
+        onDelete={(p) => {
+          setSelected(null)
+          setDeleting(p)
+        }}
+      />
 
       {transfer && (
         <FormDialog
           open
           onOpenChange={(o) => !o && setTransfer(null)}
-          title={`${transfer.property.name} devret`}
-          description="Mülk ücretsiz olarak yeni sahibe geçer. Aktif kiralar yeni sahiple devam eder, bekleyen teklifler iade edilir."
+          title="Sahipliği Devret"
+          description={`${transfer.property.name}: Mülk ücretsiz olarak yeni sahibe geçer. Aktif kiralar yeni sahiple devam eder, bekleyen teklifler iade edilir.`}
           pending={isPending("transfer")}
-          submitLabel="Mülkü devret"
+          submitLabel="Devret"
           onSubmit={async () => {
             if (!transfer.owner) return
             const res = await run("transfer", () => api.admin.transfer(transfer.property.id, transfer.owner), "Mülk devredildi.")
@@ -218,30 +200,47 @@ export default function AdminPropertiesPage() {
             }
           }}
         >
-          <Field label="Yeni sahip" htmlFor="tr-q" hint="E-posta veya adla arayın, listeden seçin.">
-            <Input id="tr-q" value={transfer.email} onChange={(e) => searchOwner(e.target.value)} autoComplete="off" autoFocus />
-          </Field>
-          {transfer.candidates.length > 0 && (
-            <ul className="grid max-h-56 gap-1 overflow-y-auto" role="listbox" aria-label="Kullanıcılar">
-              {transfer.candidates
-                .filter((u) => u.id !== transfer.property.owner)
-                .map((u) => (
-                  <li key={u.id}>
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={transfer.owner === u.id}
-                      onClick={() => setTransfer({ ...transfer, owner: u.id })}
-                      className={`w-full rounded-md border px-3 py-2 text-left type-body-medium ${
-                        transfer.owner === u.id ? "border-primary bg-primary/10" : "hover:bg-muted"
-                      }`}
-                    >
-                      <span className="font-medium">{u.name || "İsimsiz"}</span>
-                      <span className="block type-body-small text-muted-foreground">{u.email}</span>
-                    </button>
-                  </li>
-                ))}
-            </ul>
+          <section className="grid gap-1.5">
+            <SearchField
+              id="tr-q"
+              value={transfer.email}
+              onChange={searchOwner}
+              placeholder="E-posta veya ad"
+              aria-label="Yeni sahip"
+              autoComplete="off"
+              autoFocus
+            />
+            <p className="px-4 text-footnote text-label-secondary">Yeni sahibi e-posta veya adla arayın, listeden seçin.</p>
+          </section>
+          {candidates.length > 0 && (
+            <section className="min-w-0">
+              <h2 className="mb-1.5 px-4 text-footnote font-semibold tracking-wide text-label-secondary uppercase">Yeni sahip</h2>
+              <ul role="listbox" aria-label="Kullanıcılar" className="overflow-hidden rounded-section bg-grouped-secondary">
+                {candidates.map((u) => {
+                  const on = transfer.owner === u.id
+                  return (
+                    <li key={u.id} role="none" className="group/row relative">
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={on}
+                        onClick={() => setTransfer({ ...transfer, owner: u.id })}
+                        className="press-row flex min-h-11 w-full items-center gap-3 px-4 text-left outline-none focus-visible:bg-fill-quaternary"
+                      >
+                        <Avatar name={u.name || u.email} className="size-9 text-subheadline" />
+                        <span className="relative flex min-w-0 flex-1 items-center gap-3 self-stretch py-2.5 after:hairline after:absolute after:bottom-0 after:left-0 after:-right-4 after:bg-separator group-last/row:after:hidden">
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-body text-label">{u.name || "İsimsiz"}</span>
+                            <span className="block truncate text-subheadline text-label-secondary">{u.email}</span>
+                          </span>
+                          <Check weight="bold" className={cn("size-5 shrink-0 text-tint", !on && "invisible")} />
+                        </span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
           )}
         </FormDialog>
       )}
@@ -251,7 +250,7 @@ export default function AdminPropertiesPage() {
         onOpenChange={(o) => !o && setDeleting(null)}
         title={`${deleting?.name} silinsin mi?`}
         description="Mülk kalıcı olarak silinir; kiralama kayıtları, teklifler ve yükseltmeleri de silinir. Bekleyen teklif blokeleri iade edilmez, bu yüzden önce mülkü satıştan kaldırın. Bu işlem geri alınamaz."
-        confirmLabel="Kalıcı olarak sil"
+        confirmLabel="Kalıcı Olarak Sil"
         destructive
         pending={isPending("delete")}
         onConfirm={async () => {
@@ -262,5 +261,65 @@ export default function AdminPropertiesPage() {
         }}
       />
     </>
+  )
+}
+
+/** Mülk ayrıntısı: özet bilgiler, bağlantılar ve yönetici eylemleri. */
+function PropertySheet({
+  property,
+  onOpenChange,
+  onTransfer,
+  onDelete,
+}: {
+  property: Property | null
+  onOpenChange: (open: boolean) => void
+  onTransfer: (p: Property) => void
+  onDelete: (p: Property) => void
+}) {
+  // Kapanış animasyonu sırasında içerik boşalmasın diye son mülk tutulur.
+  const [last, setLast] = useState<Property | null>(property)
+  if (property && property !== last) setLast(property)
+  const p = property || last
+
+  return (
+    <Dialog open={!!property} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader title={p?.name || ""} />
+        {p && (
+          <DialogBody>
+            <div>
+              <div className="relative aspect-[16/10] overflow-hidden rounded-card bg-fill-tertiary">
+                <PropertyVisual property={p} className="size-full" />
+                <StatusBadge status={p.status} className="glass-thick absolute top-3 left-3 shadow-none" />
+              </div>
+            </div>
+
+            <Section>
+              <Row title="Sahibi" detail={ownerName(p)} href={`/users/${p.owner}`} />
+              <Row title="Konum" detail={placeName(p) || "—"} />
+              <Row title="Tip" detail={p.expand?.type?.name || "—"} />
+              <Row
+                title="Kiracı"
+                detail={
+                  <span className="tabular-nums">
+                    {p.tenant_count}/{p.tenant_limit}
+                  </span>
+                }
+              />
+              <Row title="Yatırım" detail={<Money value={p.invested} />} />
+            </Section>
+
+            <Section>
+              <Row href={`/properties/${p.id}`} icon={ArrowSquareOut} iconColor="blue" title="Mülk Sayfası" />
+            </Section>
+
+            <Section>
+              <Row onClick={() => onTransfer(p)} icon={ArrowsLeftRight} iconColor="orange" title="Sahipliği Devret" accessory="chevron" />
+              <Row onClick={() => onDelete(p)} icon={Trash} iconColor="red" title="Mülkü Sil" destructive />
+            </Section>
+          </DialogBody>
+        )}
+      </DialogContent>
+    </Dialog>
   )
 }

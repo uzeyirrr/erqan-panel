@@ -1,21 +1,15 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Spinner } from "@/components/ui/spinner"
 import { Switch } from "@/components/ui/switch"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogHeader } from "@/components/ui/dialog"
+import { inlineInput } from "@/components/kit"
 
-/** Sayı alanı: boş bırakılırsa 0 kabul edilir. */
+/** Sayı alanı: boş bırakılırsa 0 kabul edilir. `inline` ise gruplu form satırında sağa yaslı. */
 export function NumberInput({
   value,
   onChange,
@@ -23,6 +17,7 @@ export function NumberInput({
   min,
   className,
   id,
+  inline,
   ...rest
 }: {
   value: number
@@ -31,6 +26,7 @@ export function NumberInput({
   min?: number
   className?: string
   id?: string
+  inline?: boolean
 } & Omit<React.ComponentProps<"input">, "value" | "onChange" | "type">) {
   return (
     <Input
@@ -41,13 +37,13 @@ export function NumberInput({
       min={min}
       value={Number.isFinite(value) ? value : 0}
       onChange={(e) => onChange(e.target.value === "" ? 0 : Number(e.target.value))}
-      className={cn("figure", className)}
+      className={cn("tabular-nums", inline && inlineInput, className)}
       {...rest}
     />
   )
 }
 
-/** Etiketli aç/kapa satırı. */
+/** Gruplu listede aç/kapa satırı (iOS Ayarlar). Bir `Section` içinde kullanılır. */
 export function SwitchRow({
   label,
   hint,
@@ -62,17 +58,23 @@ export function SwitchRow({
   id: string
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 py-2">
-      <label htmlFor={id} className="min-w-0 cursor-pointer">
-        <span className="block type-title-small">{label}</span>
-        {hint && <span className="block type-body-small text-muted-foreground">{hint}</span>}
+    <li
+      data-slot="list-row"
+      className="relative flex min-h-11 items-center gap-4 px-4 py-2 after:hairline after:absolute after:right-0 after:bottom-0 after:left-4 after:bg-separator last:after:hidden"
+    >
+      <label htmlFor={id} className="min-w-0 flex-1 cursor-pointer py-0.5">
+        <span className="block text-body text-label">{label}</span>
+        {hint && <span className="block text-footnote text-label-secondary">{hint}</span>}
       </label>
-      <Switch id={id} checked={checked} onCheckedChange={(v) => onChange(!!v)} className="mt-0.5" />
-    </div>
+      <Switch id={id} checked={checked} onCheckedChange={(v) => onChange(!!v)} />
+    </li>
   )
 }
 
-/** Oluştur/düzenle formu için pencere. */
+/**
+ * Oluştur/düzenle sayfası (sheet): üst çubukta Kapat, başlık ve Kaydet.
+ * İçerik gruplu bölümlerden (`Section` + `FieldRow` / `Field`) oluşur.
+ */
 export function FormDialog({
   open,
   onOpenChange,
@@ -94,45 +96,45 @@ export function FormDialog({
   children: React.ReactNode
   wide?: boolean
 }) {
+  const formId = `form-${title.replace(/\W+/g, "-").toLowerCase()}`
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn("max-h-[90vh] overflow-y-auto", wide ? "sm:max-w-2xl" : "sm:max-w-lg")}>
-        <form
-          className="grid gap-4"
-          onSubmit={(e) => {
-            e.preventDefault()
-            onSubmit()
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-            {description && <DialogDescription>{description}</DialogDescription>}
-          </DialogHeader>
-          {children}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>
-              Vazgeç
+      <DialogContent size={wide ? "lg" : "md"}>
+        <DialogHeader
+          title={title}
+          action={
+            <Button type="submit" form={formId} size="sm" className="h-11 px-4" disabled={pending}>
+              {pending ? <Spinner className="size-4" /> : submitLabel}
             </Button>
-            <Button type="submit" disabled={pending}>
-              {pending && <Loader2 className="animate-spin" />}
-              {submitLabel}
-            </Button>
-          </DialogFooter>
-        </form>
+          }
+        />
+        <DialogBody>
+          {description && <DialogDescription>{description}</DialogDescription>}
+          <form
+            id={formId}
+            className="grid gap-6"
+            onSubmit={(e) => {
+              e.preventDefault()
+              onSubmit()
+            }}
+          >
+            {children}
+          </form>
+        </DialogBody>
       </DialogContent>
     </Dialog>
   )
 }
 
-/** Tabloların yatay kaydırılabilir kabı (mobilde taşmayı önler). */
+/** Tabloların kabı: gruplu bölüm görünümü, dar ekranda yatay kaydırma. */
 export function TableWrap({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("min-w-0 overflow-x-auto rounded-xl border bg-card", className)}>{children}</div>
+  return <div className={cn("min-w-0 overflow-hidden rounded-section bg-grouped-secondary", className)}>{children}</div>
 }
 
 export function ActiveDot({ active }: { active: boolean }) {
   return (
-    <span className="inline-flex items-center gap-1.5 type-body-small">
-      <span className={cn("size-2 rounded-full", active ? "bg-gain" : "bg-muted-foreground/40")} />
+    <span className="inline-flex items-center gap-1.5 text-footnote text-label-secondary">
+      <span className={cn("size-2 rounded-full", active ? "bg-system-green" : "bg-system-gray3")} />
       {active ? "Aktif" : "Pasif"}
     </span>
   )
@@ -149,17 +151,17 @@ export function Pager({
 }) {
   if (totalPages <= 1) return null
   return (
-    <div className="mt-3 flex items-center justify-end gap-2 type-body-medium">
-      <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => onPage(page - 1)}>
+    <nav aria-label="Sayfalar" className="mt-4 flex items-center justify-center gap-3">
+      <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => onPage(page - 1)}>
         Önceki
       </Button>
-      <span className="figure text-muted-foreground">
+      <span className="min-w-16 text-center text-subheadline text-label-secondary tabular-nums">
         {page} / {totalPages}
       </span>
-      <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => onPage(page + 1)}>
+      <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => onPage(page + 1)}>
         Sonraki
       </Button>
-    </div>
+    </nav>
   )
 }
 

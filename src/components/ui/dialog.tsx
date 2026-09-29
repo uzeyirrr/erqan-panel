@@ -1,160 +1,180 @@
 "use client"
 
 import * as React from "react"
-import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
+import { Drawer } from "@base-ui/react/drawer"
+import { AlertDialog as AlertPrimitive } from "@base-ui/react/alert-dialog"
+import { X } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
-
 import { Button } from "@/components/ui/button"
-import { XIcon } from "lucide-react"
 
-function Dialog({ ...props }: DialogPrimitive.Root.Props) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />
-}
+// ------------------------------------------------------------------ sayfa (sheet)
+// iOS sayfası — https://developer.apple.com/design/human-interface-guidelines/sheets
+// iPhone'da alttan açılır, tutamaçla (grabber) aşağı kaydırılarak kapanır; geniş ekranda
+// ortalanmış form sayfası olur. Üst çubukta solda Kapat (Liquid Glass daire), ortada başlık,
+// sağda birincil eylem bulunur.
 
-function DialogTrigger({ ...props }: DialogPrimitive.Trigger.Props) {
-  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
-}
-
-function DialogPortal({ ...props }: DialogPrimitive.Portal.Props) {
-  return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />
-}
-
-function DialogClose({ ...props }: DialogPrimitive.Close.Props) {
-  return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
-}
-
-function DialogOverlay({
-  className,
-  ...props
-}: DialogPrimitive.Backdrop.Props) {
+function Dialog({ children, ...props }: Omit<Drawer.Root.Props, "children"> & { children?: React.ReactNode }) {
   return (
-    <DialogPrimitive.Backdrop
-      data-slot="dialog-overlay"
-      className={cn(
-        "fixed inset-0 isolate z-50 bg-scrim/32 duration-150 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
-        className
-      )}
-      {...props}
-    />
+    <Drawer.Root data-slot="dialog" {...props}>
+      <Drawer.VirtualKeyboardProvider>{children}</Drawer.VirtualKeyboardProvider>
+    </Drawer.Root>
   )
 }
+
+const DialogTrigger = Drawer.Trigger
+const DialogClose = Drawer.Close
 
 function DialogContent({
   className,
   children,
-  showCloseButton = true,
+  size = "md",
   ...props
-}: DialogPrimitive.Popup.Props & {
-  showCloseButton?: boolean
-}) {
+}: Drawer.Popup.Props & { size?: "md" | "lg" }) {
   return (
-    <DialogPortal>
-      <DialogOverlay />
-      <DialogPrimitive.Popup
-        data-slot="dialog-content"
-        className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 max-h-[calc(100dvh-2rem)] gap-4 overflow-y-auto rounded-3xl bg-surface-container-high p-6 type-body-medium text-on-surface-variant shadow-e3 duration-150 outline-none sm:max-w-md data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-          className
-        )}
-        {...props}
-      >
-        {children}
-        {showCloseButton && (
-          <DialogPrimitive.Close
-            data-slot="dialog-close"
-            render={
-              <Button
-                variant="ghost"
-                className="absolute top-2 right-2"
-                size="icon-sm"
-              />
-            }
-          >
-            <XIcon
-            />
-            <span className="sr-only">Close</span>
-          </DialogPrimitive.Close>
-        )}
-      </DialogPrimitive.Popup>
-    </DialogPortal>
+    <Drawer.Portal>
+      <Drawer.Backdrop
+        data-slot="dialog-overlay"
+        className="fixed inset-0 z-50 min-h-dvh bg-black opacity-[calc(0.3*(1-var(--drawer-swipe-progress)))] transition-opacity duration-500 ease-ios data-starting-style:opacity-0 data-ending-style:opacity-0 data-ending-style:duration-[calc(var(--drawer-swipe-strength)*400ms)] data-swiping:duration-0 dark:opacity-[calc(0.55*(1-var(--drawer-swipe-progress)))] supports-[-webkit-touch-callout:none]:absolute"
+      />
+      <Drawer.Viewport className="fixed inset-0 z-50 flex items-end justify-center [--bleed:3rem] sm:items-center sm:p-6 sm:[--bleed:0px]">
+        <Drawer.Popup
+          data-slot="dialog-content"
+          data-elevated=""
+          className={cn(
+            "relative flex w-full flex-col overflow-hidden bg-grouped text-label shadow-float outline-none",
+            // iPhone: alttan, üst köşeler yuvarlak; ana ekran çubuğu için güvenli alan.
+            "-mb-(--bleed) max-h-[calc(100dvh-env(safe-area-inset-top)-0.75rem+var(--bleed))] rounded-t-sheet pb-[calc(env(safe-area-inset-bottom)+var(--bleed))]",
+            // Geniş ekran: ortalanmış form sayfası.
+            "sm:max-h-[min(760px,90dvh)] sm:rounded-sheet sm:pb-0",
+            size === "lg" ? "sm:max-w-2xl" : "sm:max-w-lg",
+            "[transform:translateY(var(--drawer-swipe-movement-y))] transition-transform duration-500 ease-ios will-change-transform",
+            "data-starting-style:[transform:translateY(calc(100%+2rem))] data-ending-style:[transform:translateY(calc(100%+2rem))] data-ending-style:duration-[calc(var(--drawer-swipe-strength)*400ms)] data-swiping:select-none",
+            "sm:data-starting-style:[transform:translateY(2.5rem)_scale(0.97)] sm:data-starting-style:opacity-0 sm:data-ending-style:[transform:translateY(2.5rem)_scale(0.97)] sm:data-ending-style:opacity-0 sm:transition-[transform,opacity]",
+            className,
+          )}
+          {...props}
+        >
+          {children}
+        </Drawer.Popup>
+      </Drawer.Viewport>
+    </Drawer.Portal>
   )
 }
 
-function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="dialog-header"
-      className={cn("flex flex-col gap-2", className)}
-      {...props}
-    />
-  )
-}
-
-function DialogFooter({
+/**
+ * Sayfanın üst çubuğu: tutamaç, Kapat düğmesi, başlık ve isteğe bağlı birincil eylem.
+ * Başlık erişilebilir ad olarak kullanılır.
+ */
+function DialogHeader({
+  title,
+  action,
+  closeLabel = "Kapat",
   className,
-  showCloseButton = false,
-  children,
-  ...props
-}: React.ComponentProps<"div"> & {
-  showCloseButton?: boolean
+}: {
+  title: React.ReactNode
+  action?: React.ReactNode
+  closeLabel?: string
+  className?: string
 }) {
   return (
-    <div
-      data-slot="dialog-footer"
-      className={cn(
-        "flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end",
-        className
-      )}
-      {...props}
-    >
-      {children}
-      {showCloseButton && (
-        <DialogPrimitive.Close render={<Button variant="outline" />}>
-          Close
-        </DialogPrimitive.Close>
-      )}
+    <div data-slot="dialog-header" className={cn("relative shrink-0 touch-none px-4 pt-4 pb-2 select-none", className)}>
+      <div aria-hidden="true" className="absolute top-1.5 left-1/2 h-[5px] w-9 -translate-x-1/2 rounded-full bg-fill sm:hidden" />
+      <div className="grid min-h-11 grid-cols-[minmax(max-content,1fr)_minmax(0,auto)_minmax(max-content,1fr)] items-center gap-2">
+        <Drawer.Close
+          aria-label={closeLabel}
+          render={<Button variant="glass" size="icon" className="justify-self-start" />}
+        >
+          <X weight="bold" className="size-[18px]" />
+        </Drawer.Close>
+        <Drawer.Title className="min-w-0 truncate text-center text-headline text-label">{title}</Drawer.Title>
+        <div className="justify-self-end">{action}</div>
+      </div>
     </div>
   )
 }
 
-function DialogTitle({ className, ...props }: DialogPrimitive.Title.Props) {
+/** Sayfa içeriği: kaydırılabilir, gruplu arka plan üzerinde. */
+function DialogBody({ className, ...props }: Drawer.Content.Props) {
   return (
-    <DialogPrimitive.Title
-      data-slot="dialog-title"
-      className={cn(
-        "type-headline-small text-on-surface",
-        className
-      )}
+    <Drawer.Content
+      data-slot="dialog-body"
+      className={cn("grid min-h-0 flex-1 content-start gap-6 overflow-y-auto overscroll-contain px-4 pt-2 pb-6 touch-auto", className)}
       {...props}
     />
   )
 }
 
-function DialogDescription({
-  className,
-  ...props
-}: DialogPrimitive.Description.Props) {
+/** Sayfanın altına sabitlenen eylem alanı (tam genişlik birincil düğme için). */
+function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
+  return <div data-slot="dialog-footer" className={cn("grid shrink-0 gap-2 px-4 pt-2 pb-4", className)} {...props} />
+}
+
+function DialogDescription({ className, ...props }: Drawer.Description.Props) {
   return (
-    <DialogPrimitive.Description
+    <Drawer.Description
       data-slot="dialog-description"
-      className={cn(
-        "type-body-medium text-on-surface-variant *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-on-surface",
-        className
-      )}
+      className={cn("px-1 text-subheadline text-label-secondary", className)}
       {...props}
     />
   )
 }
+
+// ------------------------------------------------------------------ uyarı (alert)
+// iOS 26 uyarısı — https://developer.apple.com/design/human-interface-guidelines/alerts
+// Ortada, Liquid Glass zeminli; başlık ve mesaj sola hizalı, eylemler kapsül düğmeler.
+
+const AlertDialog = AlertPrimitive.Root
+
+function AlertDialogContent({ className, children, ...props }: AlertPrimitive.Popup.Props) {
+  return (
+    <AlertPrimitive.Portal>
+      <AlertPrimitive.Backdrop
+        data-slot="alert-overlay"
+        className="fixed inset-0 z-50 bg-(--scrim) transition-opacity duration-300 ease-ios data-starting-style:opacity-0 data-ending-style:opacity-0"
+      />
+      <AlertPrimitive.Popup
+        data-slot="alert-content"
+        data-elevated=""
+        className={cn(
+          "glass-thick fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-4rem)] w-[min(calc(100vw-3.5rem),320px)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-alert p-5 pt-6 text-label outline-none",
+          "transition-[scale,opacity] duration-300 ease-spring data-starting-style:scale-110 data-starting-style:opacity-0 data-ending-style:scale-95 data-ending-style:opacity-0 data-ending-style:duration-200 data-ending-style:ease-in",
+          className,
+        )}
+        {...props}
+      >
+        {children}
+      </AlertPrimitive.Popup>
+    </AlertPrimitive.Portal>
+  )
+}
+
+function AlertDialogTitle({ className, ...props }: AlertPrimitive.Title.Props) {
+  return <AlertPrimitive.Title className={cn("px-1 text-headline text-label", className)} {...props} />
+}
+
+function AlertDialogDescription({ className, ...props }: AlertPrimitive.Description.Props) {
+  return (
+    <AlertPrimitive.Description
+      className={cn("-mt-2.5 px-1 text-subheadline text-label", className)}
+      {...props}
+    />
+  )
+}
+
+const AlertDialogClose = AlertPrimitive.Close
 
 export {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogOverlay,
-  DialogPortal,
-  DialogTitle,
   DialogTrigger,
+  AlertDialog,
+  AlertDialogClose,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
 }

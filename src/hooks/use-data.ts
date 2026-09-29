@@ -6,6 +6,16 @@ import { errorMessage } from "@/lib/pb"
 
 type LoadState<T> = { key: string | null; data: T | null; error: string | null }
 
+/** Aşağı çekerek yenileme: ekrandaki tüm `useLoad` verileri bu olayla yeniden yüklenir. */
+const REFRESH_EVENT = "erqan:refresh"
+
+/** Ekrandaki tüm verileri yeniden yükler; hepsi bitince çözülür. */
+export async function refreshAll(): Promise<void> {
+  const pending: Promise<void>[] = []
+  window.dispatchEvent(new CustomEvent<Promise<void>[]>(REFRESH_EVENT, { detail: pending }))
+  await Promise.all(pending)
+}
+
 /**
  * Veri yükleme: `deps` değişince yeniden çalışır, `reload()` ile elle yenilenir
  * (dönen promise yükleme bitince çözülür). `enabled` false ise çalışmaz.
@@ -48,6 +58,13 @@ export function useLoad<T>(fn: () => Promise<T>, deps: unknown[], enabled = true
       }),
     [],
   )
+
+  useEffect(() => {
+    if (!enabled) return
+    const onRefresh = (e: Event) => (e as CustomEvent<Promise<void>[]>).detail.push(reload())
+    window.addEventListener(REFRESH_EVENT, onRefresh)
+    return () => window.removeEventListener(REFRESH_EVENT, onRefresh)
+  }, [enabled, reload])
 
   const setData = useCallback((value: T | null | ((prev: T | null) => T | null)) => {
     setState((prev) => ({

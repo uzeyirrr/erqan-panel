@@ -1,8 +1,9 @@
 "use client"
 
 import Link from "next/link"
+import { useState } from "react"
 import { useParams } from "next/navigation"
-import { MapPin } from "lucide-react"
+import { Buildings } from "@phosphor-icons/react"
 import { pb } from "@/lib/pb"
 import { date, num } from "@/lib/format"
 import { PROPERTY_EXPAND, loadCatalog } from "@/lib/catalog"
@@ -10,12 +11,12 @@ import type { Offer, Property, PropertyUpgrade, Rental, Transaction } from "@/li
 import { useLoad } from "@/hooks/use-data"
 import { useApp } from "@/components/app-provider"
 import { PropertyVisual } from "@/components/property-card"
-import { EmptyState, ErrorState, Loading, Money, StatusBadge, Tag } from "@/components/kit"
-import { buttonVariants } from "@/components/ui/button"
+import { typeColor } from "@/components/parcel"
+import { EmptyState, ErrorState, Loading, Money, PageHeader, Row, Section, StatusBadge, Tag } from "@/components/kit"
+import { Button, buttonVariants } from "@/components/ui/button"
 import {
   BuildPanel,
   EditDetails,
-  Facts,
   IncomePanel,
   ListingForm,
   OffersPanel,
@@ -36,6 +37,7 @@ type Detail = {
 export default function PropertyPage() {
   const { id } = useParams<{ id: string }>()
   const { user, config, refreshUser } = useApp()
+  const [editing, setEditing] = useState(false)
   const catalog = useLoad(() => loadCatalog(), [])
 
   const detail = useLoad<Detail>(
@@ -90,21 +92,34 @@ export default function PropertyPage() {
   }
 
   if (detail.error) {
-    return detail.error.includes("wasn't found") || detail.error.includes("bulunamadı") ? (
-      <EmptyState
-        title="Mülk bulunamadı"
-        description="Bu mülk silinmiş veya bağlantı hatalı olabilir."
-        action={
-          <Link href="/listings" className={buttonVariants({ variant: "outline" })}>
-            İlanlara dön
-          </Link>
-        }
-      />
-    ) : (
-      <ErrorState message={detail.error} onRetry={detail.reload} />
+    return (
+      <>
+        <PageHeader title="Mülk" largeTitle={false} />
+        {detail.error.includes("wasn't found") || detail.error.includes("bulunamadı") ? (
+          <EmptyState
+            icon={<Buildings weight="fill" />}
+            title="Mülk bulunamadı"
+            description="Bu mülk silinmiş veya bağlantı hatalı olabilir."
+            action={
+              <Link href="/listings" className={buttonVariants({ variant: "secondary" })}>
+                İlanlara Dön
+              </Link>
+            }
+          />
+        ) : (
+          <ErrorState message={detail.error} onRetry={detail.reload} />
+        )}
+      </>
     )
   }
-  if (!detail.data || !catalog.data) return <Loading />
+  if (!detail.data || !catalog.data) {
+    return (
+      <>
+        <PageHeader title="" largeTitle={false} />
+        <Loading />
+      </>
+    )
+  }
 
   const { property: p, applied, myRental, tenants, offers, income } = detail.data
   const cat = catalog.data
@@ -114,73 +129,48 @@ export default function PropertyPage() {
   const owner = p.expand?.owner
   const isOwner = p.owner === user?.id
   const features = p.expand?.features || []
-  // Ziyaretçi için sol sütunda yalnızca uygulanmış yükseltmeler olabilir.
-  const hasMain = isOwner || applied.length > 0
+  const ownerName = owner ? owner.name || "Kullanıcı" : "Bilinmiyor"
 
   return (
-    <div className="grid gap-6">
-      <header className="grid gap-5 overflow-hidden rounded-xl border bg-card md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-        <div className="aspect-[4/3] border-b bg-background md:aspect-auto md:min-h-72 md:border-r md:border-b-0">
-          <PropertyVisual property={p} className="size-full" />
-        </div>
-        <div className="flex min-w-0 flex-col gap-4 p-5 md:pl-0">
-          <div className="flex flex-wrap items-center gap-2 type-body-medium text-muted-foreground">
-            <span>{type?.name}</span>
-            <StatusBadge status={p.status} />
-            {isOwner && <Tag className="bg-primary/10 text-primary">Sizin mülkünüz</Tag>}
-          </div>
-          <h1 className="type-headline-medium break-words sm:text-4xl">{p.name}</h1>
-          {city && (
-            <p className="flex items-center gap-1.5 text-muted-foreground">
-              <MapPin className="size-4" />
-              {country?.flag} {city.name}
-              {country ? `, ${country.name}` : ""}
-            </p>
-          )}
-          {p.description && <p className="max-w-prose type-body-medium whitespace-pre-line">{p.description}</p>}
-          <Facts
-            items={[
-              ["Kiracı", `${p.tenant_count}/${p.tenant_limit}`],
-              ...(p.area_m2 ? ([["Alan", `${num(p.area_m2)} m²`]] as [string, string][]) : []),
-              ...(p.rooms ? ([["Oda", String(p.rooms)]] as [string, string][]) : []),
-              ...(isOwner ? ([["Toplam yatırım", <Money key="inv" value={p.invested} />]] as [string, React.ReactNode][]) : []),
-              ["Sahibi", owner ? (
-                config?.features.public_profiles && !isOwner ? (
-                  <Link key="owner" href={`/users/${owner.id}`} className="text-primary hover:underline">
-                    {owner.name || "Kullanıcı"}
-                  </Link>
-                ) : (
-                  owner.name || "Kullanıcı"
-                )
-              ) : "Bilinmiyor"],
-              ["Kayıt tarihi", date(p.created)],
-            ]}
-          />
-          {features.length > 0 && (
-            <ul className="flex flex-wrap gap-1.5" aria-label="Özellikler">
-              {features.map((f) => (
-                <li key={f.id}>
-                  <Tag>{f.name}</Tag>
-                </li>
-              ))}
-            </ul>
-          )}
-          {isOwner && (
-            <div className="mt-auto pt-1">
-              <EditDetails property={p} catalog={cat} onDone={refresh} />
-            </div>
-          )}
-        </div>
-      </header>
+    <>
+      <PageHeader
+        title={p.name}
+        largeTitle={false}
+        actions={
+          isOwner && (
+            <Button variant="glass" size="sm" className="h-11 px-4" onClick={() => setEditing(true)}>
+              Düzenle
+            </Button>
+          )
+        }
+      />
 
-      <div className={hasMain ? "grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]" : "grid gap-6 md:max-w-md"}>
-        <div className={hasMain ? "grid min-w-0 content-start gap-6" : "hidden"}>
-          {isOwner && <OffersPanel offers={offers} onDone={refresh} />}
-          {isOwner && (p.tenant_limit > 0 || tenants.length > 0) && <TenantsPanel rentals={tenants} />}
-          {isOwner && <IncomePanel transactions={income} />}
-          <UpgradesPanel property={p} catalog={cat} applied={applied} isOwner={isOwner} onDone={refresh} />
-        </div>
-        <aside className="order-first grid min-w-0 content-start gap-6 lg:sticky lg:top-6 lg:order-none lg:self-start">
+      {/* Geniş ekranda iki sütun: solda mülk ve ayrıntılar, sağda sabit eylem sütunu. Telefonda eylemler başlığın hemen altında. */}
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:grid-rows-[auto_1fr] lg:items-start">
+        <section aria-label="Mülk" className="grid min-w-0 gap-4 lg:col-start-1 lg:row-start-1">
+          <div className="aspect-[4/3] overflow-hidden rounded-card bg-fill-tertiary lg:aspect-[16/10]">
+            <PropertyVisual property={p} className="size-full" />
+          </div>
+          <div className="grid gap-1.5 px-1">
+            <div className="text-title1 break-words text-label">{p.name}</div>
+            <p className="flex min-w-0 items-center gap-1.5 text-subheadline text-label-secondary">
+              <span className="size-2 shrink-0 rounded-full" style={{ background: typeColor(type?.color) }} aria-hidden="true" />
+              <span className="min-w-0">
+                {type?.name}
+                {city && ` · ${country?.flag ? country.flag + " " : ""}${city.name}${country ? `, ${country.name}` : ""}`}
+              </span>
+            </p>
+            <div className="flex flex-wrap gap-1.5 pt-1.5">
+              <StatusBadge status={p.status} />
+              {isOwner && <Tag tone="tint">Sizin mülkünüz</Tag>}
+            </div>
+          </div>
+          {p.description && (
+            <p className="max-w-prose px-1 text-body whitespace-pre-line text-label">{p.description}</p>
+          )}
+        </section>
+
+        <aside className="grid min-w-0 content-start gap-8 lg:sticky lg:top-16 lg:col-start-2 lg:row-span-2 lg:row-start-1">
           {isOwner ? (
             <>
               <ListingForm key={`${p.status}-${p.rent_price}-${p.sale_price}`} property={p} onDone={refresh} />
@@ -190,7 +180,43 @@ export default function PropertyPage() {
             <VisitorActions property={p} myRental={myRental} onDone={refresh} />
           )}
         </aside>
+
+        <div className="grid min-w-0 content-start gap-8 lg:col-start-1 lg:row-start-2">
+          {isOwner && <OffersPanel offers={offers} onDone={refresh} />}
+          <Section header="Bilgiler">
+            <Row title="Kiracı" detail={<span className="tabular-nums">{p.tenant_count}/{p.tenant_limit}</span>} />
+            {!!p.area_m2 && <Row title="Alan" detail={<span className="tabular-nums">{num(p.area_m2)} m²</span>} />}
+            {!!p.rooms && <Row title="Oda" detail={<span className="tabular-nums">{p.rooms}</span>} />}
+            {isOwner && <Row title="Toplam yatırım" detail={<Money value={p.invested} />} />}
+            {owner && config?.features.public_profiles && !isOwner ? (
+              <Row href={`/users/${owner.id}`} title="Sahibi" detail={ownerName} />
+            ) : (
+              <Row title="Sahibi" detail={ownerName} />
+            )}
+            <Row title="Kayıt tarihi" detail={date(p.created)} />
+          </Section>
+
+          {features.length > 0 && (
+            <Section header="Özellikler" plain>
+              <ul className="flex flex-wrap gap-2" aria-label="Özellikler">
+                {features.map((f) => (
+                  <li key={f.id}>
+                    <Tag className="h-7 px-3 text-footnote">{f.name}</Tag>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
+
+          {isOwner && (p.tenant_limit > 0 || tenants.length > 0) && <TenantsPanel rentals={tenants} />}
+          {isOwner && <IncomePanel transactions={income} />}
+          <UpgradesPanel property={p} catalog={cat} applied={applied} isOwner={isOwner} onDone={refresh} />
+        </div>
       </div>
-    </div>
+
+      {isOwner && (
+        <EditDetails property={p} catalog={cat} open={editing} onOpenChange={setEditing} onDone={refresh} />
+      )}
+    </>
   )
 }

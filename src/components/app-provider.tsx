@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
-import { DEFAULT_SEED, m3Css } from "@/lib/m3-theme"
+import { tintCss } from "@/lib/tint"
 import { ThemeProvider } from "next-themes"
 import { api, pb } from "@/lib/pb"
 import type { Settings, User } from "@/lib/types"
@@ -139,20 +139,17 @@ function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <Ctx.Provider value={value}>
-      <BrandTheme seed={config?.general.brand_color} />
+      <BrandTint color={config?.general.brand_color} />
       {children}
     </Ctx.Provider>
   )
 }
 
-/** Admin tema rengini değiştirdiyse M3 renk rollerini o renkten yeniden üretir. */
-function BrandTheme({ seed }: { seed?: string }) {
-  const css = useMemo(() => {
-    if (!seed || !/^#[0-9a-f]{6}$/i.test(seed) || seed.toLowerCase() === DEFAULT_SEED.toLowerCase()) return null
-    return m3Css(seed)
-  }, [seed])
+/** Admin marka rengini değiştirdiyse uygulamanın vurgu rengini (tint) o renge çevirir. */
+function BrandTint({ color }: { color?: string }) {
+  const css = tintCss(color)
   if (!css) return null
-  return <style id="m3-brand-theme">{css}</style>
+  return <style id="brand-tint">{css}</style>
 }
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
@@ -160,7 +157,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <AppStateProvider>
         {children}
-        <Toaster position="bottom-center" mobileOffset={{ bottom: 96 }} />
+        <Toaster />
       </AppStateProvider>
     </ThemeProvider>
   )

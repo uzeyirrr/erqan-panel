@@ -83,9 +83,9 @@ Tanıtım sitesi (https://erqan.com/) ürünü şöyle konumluyor: *"Emlak yatı
 | 6 | PocketBase sürümü / mevcut veriler? | **PocketBase en güncel sürümle sıfırdan kurulacak**, `api.erqan.com` şu an boş — veri taşıma yok |
 | 7 | Hangi yeni özellikler ilk sürüme girsin? | **Yüksek ve orta öncelikli özelliklerin tamamı** (bkz. Bölüm 7) |
 | 8 | Deploy nereye, nasıl? | **Doğrudan production** (Dokploy), domain'ler `api.erqan.com` / `panel.erqan.com`; repo herkese açık kalabilir |
-| 9 | Tasarım sistemi? | **Material Design 3** (m3.material.io), token + mevcut bileşenler yöntemiyle (bkz. Bölüm 10) |
-| 10 | M3 ana (seed) rengi? | **erqan.com'un ana rengi `#0F91E3`** (admin ayarlardan değiştirebilir) |
-| 11 | Mülk görseli yokken parsel çizimi? | **Kaldırıldı**; düz M3 yer tutucu (tip ikonu + tonal konteyner) |
+| 9 | Tasarım sistemi? | ~~Material Design 3~~ → **Apple Human Interface Guidelines (iOS 26, Liquid Glass)**; mobil öncelikli, telefonda yerel iOS uygulamasından farksız (bkz. Bölüm 10, [DESIGN.md](DESIGN.md)) |
+| 10 | Vurgu (tint) rengi? | **erqan.com'un ana rengi `#0F91E3`** (admin ayarlardan değiştirebilir) |
+| 11 | Mülk görseli yokken ne gösterilsin? | Tip renginde degrade üzerinde beyaz, dolu tip simgesi (iOS simge dili) |
 
 ### Varsayılan kabul edilenler (admin ayarından değiştirilebilir)
 - Para birimi: **USD** (sembol ayarlardan değiştirilebilir)
@@ -492,14 +492,15 @@ Diğer projelerdeki düzen incelendi (ör. Türkiye Fındık): panel GitHub'dan 
 
 ---
 
-## 10. Tasarım Sistemi: Material Design 3
+## 10. Tasarım Sistemi: Apple Human Interface Guidelines
 
-Referans: https://m3.material.io — MUI yalnızca Material Design 2'yi desteklediği için kullanılmadı.
+Referans: https://developer.apple.com/design/human-interface-guidelines — ayrıntılar [DESIGN.md](DESIGN.md)'de.
+Önceki Material Design 3 arayüzü tamamen kaldırıldı.
 
-- **Renk:** Tüm roller Google'ın `@material/material-color-utilities` kütüphanesiyle tek ana renkten üretilir (`src/lib/m3-theme.ts`, Fidelity şeması). Varsayılan `#0F91E3` (erqan.com). Açık ve koyu tema otomatik. Admin **Ayarlar > Genel > Marka rengi** alanından değiştirirse tüm arayüz o renkten yeniden üretilir.
-- **Uygulama renkleri:** Kazanç ve mülk tipi renkleri (arsa, ev, premium, villa) M3 "custom color" olarak ana renkle harmonize edilir.
-- **Tipografi:** Roboto, M3 tip ölçeği (`type-display-*`, `type-headline-*`, `type-title-*`, `type-body-*`, `type-label-*`).
-- **Şekil:** extra-small 4 (metin alanı), small 8 (chip, menü), medium 12 (kart), large 16 (çekmece), extra-large 28 (diyalog), full (buton).
-- **Yükselti ve durum:** M3 gölge seviyeleri `shadow-e1…e5`; hover %8, focus/pressed %10 durum katmanı (`state-layer`).
-- **Bileşenler:** Base UI üzerinde M3 stilleri: filled/tonal/outlined/text/elevated butonlar, outlined metin alanı, primary tabs, M3 switch ve checkbox, diyalog, menü, snackbar, düz tooltip.
-- **Gezinme:** Geniş ekranda gezinme çekmecesi; dar ekranda üst uygulama çubuğu, gezinme çubuğu ve modal çekmece.
+- **Hedef:** iPhone'da (PWA olarak ana ekrana eklendiğinde de) yerel bir iOS 26 uygulamasından ayırt edilemeyen arayüz; geniş ekranda iPadOS kenar çubuğu düzeni.
+- **Renk:** iOS 26 sistem renkleri ve dinamik roller (label, fill, grouped background, separator), açık/koyu görünüm, *Şeffaflığı Azalt* ve *Kontrastı Artır* desteği. Vurgu rengi `#0F91E3`; admin **Ayarlar > Genel > Marka rengi** ile değiştirir, koyu görünüm tonu otomatik üretilir.
+- **Tipografi:** Apple cihazlarda SF Pro (sistem yazı tipi), diğerlerinde Inter; iOS metin stilleri (Large Title … Caption 2) ve SF izleme (tracking) değerleri.
+- **Materyal:** Liquid Glass yalnızca kontrol/gezinme katmanında (sekme çubuğu, üst çubuk düğmeleri, uyarılar, bildirim kapsülleri); içerikte gruplu listeler.
+- **Gezinme:** yüzen Liquid Glass sekme çubuğu (Özet, Satın Al, İlanlar, Mülklerim, Hesap), büyük başlıklı ve kaydırma kenarı efektli gezinme çubuğu, geri düğmesi, push/pop kaydırma geçişleri (View Transitions).
+- **Bileşenler:** kapsül butonlar (prominent / bordered / borderless / glass), gruplu (inset grouped) listeler, Ayarlar tarzı simge kutucukları, segmented control, iOS anahtarı, aşağı kaydırılarak kapanan sayfalar (sheet), sola hizalı iOS 26 uyarıları, etkinlik göstergesi, üstten inen bildirim kapsülü.
+- **Simgeler:** Phosphor (SF Symbols'e en yakın açık kaynak set); sekme çubuğunda dolu (fill) stil.

@@ -2,18 +2,21 @@
 <html lang="tr">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Bağlantı yok | Erqan</title>
     <style>
-      :root { color-scheme: light dark; --bg: #f7f9ff; --fg: #181c21; --muted: #3f4751; --accent: #006099; }
-      @media (prefers-color-scheme: dark) { :root { --bg: #0f1419; --fg: #dfe6f0; --muted: #bfc7d3; --accent: #99cbff; } }
+      :root { color-scheme: light dark; --bg: #f2f2f7; --fg: #000; --muted: rgb(60 60 67 / 0.6); --accent: #0f91e3; }
+      @media (prefers-color-scheme: dark) { :root { --bg: #000; --fg: #fff; --muted: rgb(235 235 245 / 0.6); --accent: #3ba3ea; } }
       body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--fg);
-        font-family: Roboto, system-ui, sans-serif; padding: 24px; box-sizing: border-box; }
-      main { max-width: 360px; text-align: center; }
+        font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif; padding: 24px; box-sizing: border-box;
+        -webkit-font-smoothing: antialiased; }
+      main { max-width: 320px; text-align: center; }
       img { width: 72px; height: 72px; border-radius: 16px; }
-      h1 { font-size: 22px; margin: 20px 0 8px; }
-      p { color: var(--muted); line-height: 1.5; margin: 0 0 20px; }
-      button { background: var(--accent); color: var(--on-accent, #fff); border: 0; border-radius: 999px; height: 40px; padding: 0 24px; font-size: 14px; font-weight: 500; cursor: pointer; }
+      h1 { font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.26px; margin: 20px 0 8px; }
+      p { color: var(--muted); font-size: 15px; line-height: 20px; letter-spacing: -0.23px; margin: 0 0 24px; }
+      button { background: var(--accent); color: #fff; border: 0; border-radius: 999px; height: 50px; padding: 0 28px;
+        font: inherit; font-size: 17px; font-weight: 600; letter-spacing: -0.43px; cursor: pointer; }
+      button:active { opacity: 0.7; }
     </style>
   </head>
   <body>

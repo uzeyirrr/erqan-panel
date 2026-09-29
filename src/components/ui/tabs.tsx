@@ -1,44 +1,28 @@
 "use client"
 
 import { Tabs as TabsPrimitive } from "@base-ui/react/tabs"
-import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
-// Material 3 sekmeler — https://m3.material.io/components/tabs/specs
-// default = primary tabs (altta 3px gösterge), line = secondary tabs (2px, tam genişlik gösterge).
+// iOS bölümlü kontrol (segmented control) — https://developer.apple.com/design/human-interface-guidelines/segmented-controls
+// Gri kapsül ray; seçili bölüm, kayan beyaz (koyu görünümde açık gri) bir kapsülle gösterilir.
 
-function Tabs({ className, orientation = "horizontal", ...props }: TabsPrimitive.Root.Props) {
-  return (
-    <TabsPrimitive.Root
-      data-slot="tabs"
-      data-orientation={orientation}
-      className={cn("group/tabs flex gap-4 data-horizontal:flex-col", className)}
-      {...props}
-    />
-  )
+function Tabs({ className, ...props }: TabsPrimitive.Root.Props) {
+  return <TabsPrimitive.Root data-slot="tabs" className={cn("flex flex-col gap-4", className)} {...props} />
 }
 
-const tabsListVariants = cva(
-  "group/tabs-list relative flex w-full items-stretch overflow-x-auto border-b border-outline-variant [scrollbar-width:none] group-data-vertical/tabs:w-fit group-data-vertical/tabs:flex-col group-data-vertical/tabs:border-r group-data-vertical/tabs:border-b-0",
-  {
-    variants: {
-      variant: {
-        default: "",
-        line: "",
-      },
-    },
-    defaultVariants: { variant: "default" },
-  },
-)
-
-function TabsList({ className, variant = "default", ...props }: TabsPrimitive.List.Props & VariantProps<typeof tabsListVariants>) {
+function TabsList({ className, children, ...props }: TabsPrimitive.List.Props) {
   return (
     <TabsPrimitive.List
       data-slot="tabs-list"
-      data-variant={variant}
-      className={cn(tabsListVariants({ variant }), className)}
+      className={cn("relative isolate flex h-9 w-full items-stretch rounded-full bg-fill-tertiary p-0.5 sm:w-fit", className)}
       {...props}
-    />
+    >
+      <TabsPrimitive.Indicator
+        data-slot="tabs-indicator"
+        className="absolute top-(--active-tab-top) left-(--active-tab-left) -z-10 h-(--active-tab-height) w-(--active-tab-width) rounded-full bg-white shadow-[0_3px_8px_rgb(0_0_0/0.12),0_3px_1px_rgb(0_0_0/0.04)] transition-all duration-300 ease-ios dark:bg-system-gray2"
+      />
+      {children}
+    </TabsPrimitive.List>
   )
 }
 
@@ -47,13 +31,9 @@ function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
     <TabsPrimitive.Tab
       data-slot="tabs-trigger"
       className={cn(
-        "state-layer relative inline-flex h-12 min-w-fit flex-1 cursor-pointer items-center justify-center gap-2 px-4 type-title-small whitespace-nowrap text-on-surface-variant outline-none",
-        "focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:pointer-events-none disabled:text-on-surface/38 aria-disabled:pointer-events-none aria-disabled:text-on-surface/38",
-        "data-active:text-primary [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-5",
-        // Aktif gösterge
-        "after:absolute after:bottom-0 after:left-1/2 after:h-[3px] after:w-[calc(100%-2rem)] after:max-w-full after:min-w-6 after:-translate-x-1/2 after:rounded-t-full after:bg-primary after:opacity-0 data-active:after:opacity-100",
-        "group-data-[variant=line]/tabs-list:after:h-0.5 group-data-[variant=line]/tabs-list:after:w-full group-data-[variant=line]/tabs-list:after:rounded-none group-data-[variant=line]/tabs-list:data-active:text-on-surface",
-        "group-data-vertical/tabs:w-full group-data-vertical/tabs:justify-start group-data-vertical/tabs:after:hidden group-data-vertical/tabs:data-active:bg-secondary-container group-data-vertical/tabs:data-active:text-on-secondary-container",
+        "relative inline-flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full px-4 text-subheadline font-medium whitespace-nowrap text-label outline-none transition-opacity select-none",
+        "focus-visible:outline-2 focus-visible:-outline-offset-2 data-active:font-semibold active:opacity-60 data-active:active:opacity-100",
+        "disabled:pointer-events-none disabled:text-label-tertiary [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}
@@ -65,4 +45,34 @@ function TabsContent({ className, ...props }: TabsPrimitive.Panel.Props) {
   return <TabsPrimitive.Panel data-slot="tabs-content" className={cn("flex-1 outline-none", className)} {...props} />
 }
 
-export { Tabs, TabsList, TabsTrigger, TabsContent, tabsListVariants }
+/**
+ * Bağımsız bölümlü kontrol (Tabs paneli olmadan filtre/görünüm seçimi için).
+ * Base UI Tabs ile aynı görünüm ve klavye davranışı.
+ */
+function Segmented<T extends string>({
+  value,
+  onValueChange,
+  items,
+  className,
+  "aria-label": ariaLabel,
+}: {
+  value: T
+  onValueChange: (value: T) => void
+  items: { value: T; label: React.ReactNode }[]
+  className?: string
+  "aria-label"?: string
+}) {
+  return (
+    <Tabs value={value} onValueChange={(v) => onValueChange(v as T)} className={className}>
+      <TabsList aria-label={ariaLabel}>
+        {items.map((item) => (
+          <TabsTrigger key={item.value} value={item.value}>
+            {item.label}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+    </Tabs>
+  )
+}
+
+export { Tabs, TabsList, TabsTrigger, TabsContent, Segmented }

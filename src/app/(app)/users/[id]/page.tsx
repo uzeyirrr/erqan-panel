@@ -2,15 +2,17 @@
 
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { Building2, UserX } from "lucide-react"
+import { Buildings, Star, Tag as TagIcon, UserCircleMinus, Users } from "@phosphor-icons/react"
 import { api, fileUrl } from "@/lib/pb"
 import { loadCatalog } from "@/lib/catalog"
 import { date, num } from "@/lib/format"
+import { cn } from "@/lib/utils"
 import { useLoad } from "@/hooks/use-data"
 import { useApp } from "@/components/app-provider"
 import { PropertyVisual } from "@/components/property-card"
 import type { Property } from "@/lib/types"
-import { EmptyState, ErrorState, Loading, Money, Stat, StatusBadge } from "@/components/kit"
+import { Avatar, EmptyState, ErrorState, Loading, Money, PageHeader, Row, Section, StatusBadge } from "@/components/kit"
+import { buttonVariants } from "@/components/ui/button"
 
 export default function PublicProfilePage() {
   const { id } = useParams<{ id: string }>()
@@ -21,96 +23,131 @@ export default function PublicProfilePage() {
 
   if (!enabled) {
     return (
-      <EmptyState
-        icon={<UserX className="size-6" />}
-        title="Profiller şu anda kapalı"
-        description="Kullanıcı profilleri yönetici tarafından geçici olarak kapatıldı."
-      />
+      <>
+        <PageHeader title="Profil" largeTitle={false} />
+        <EmptyState
+          icon={<UserCircleMinus weight="fill" />}
+          title="Profiller şu anda kapalı"
+          description="Kullanıcı profilleri yönetici tarafından geçici olarak kapatıldı."
+        />
+      </>
     )
   }
-  if (profile.error) return <ErrorState message={profile.error} onRetry={profile.reload} />
-  if (!profile.data) return <Loading />
+  if (profile.error) {
+    return (
+      <>
+        <PageHeader title="Profil" largeTitle={false} />
+        <ErrorState message={profile.error} onRetry={profile.reload} />
+      </>
+    )
+  }
+  if (!profile.data) {
+    return (
+      <>
+        <PageHeader title="" largeTitle={false} />
+        <Loading />
+      </>
+    )
+  }
 
   const { user: u, stats, properties } = profile.data
+  const name = u.name || "İsimsiz kullanıcı"
   const avatar = fileUrl({ id: u.id, collectionId: u.collectionId }, u.avatar, "100x100")
   const typeByName = Object.fromEntries((catalog.data?.types || []).map((t) => [t.name, t]))
   const isMe = user?.id === u.id
 
   return (
     <>
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center">
-        <span className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary type-headline-small text-primary-foreground">
-          {avatar ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={avatar} alt="" className="size-full object-cover" />
-          ) : (
-            initials(u.name)
-          )}
-        </span>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate type-headline-small">{u.name || "İsimsiz kullanıcı"}</h1>
-          <p className="mt-1 type-body-medium text-muted-foreground">{date(u.created)} tarihinden beri üye</p>
-        </div>
-        {isMe && (
-          <Link href="/account" className="type-title-small text-primary hover:underline">
-            Profilimi düzenle
-          </Link>
-        )}
+      <PageHeader
+        title={name}
+        largeTitle={false}
+        actions={
+          isMe && (
+            <Link href="/account" className={buttonVariants({ variant: "glass", size: "sm", className: "h-11 px-4" })}>
+              Düzenle
+            </Link>
+          )
+        }
+      />
+
+      {/* Kişiler uygulaması tarzı başlık: ortada büyük avatar, ad ve üyelik tarihi. */}
+      <header className="flex flex-col items-center px-4 pt-2 pb-8 text-center">
+        <ProfileAvatar name={name} src={avatar} className="size-24 text-large-title" />
+        <div className="mt-3 max-w-full text-title1 break-words text-label">{name}</div>
+        <p className="mt-1 text-subheadline text-label-secondary">{date(u.created)} tarihinden beri üye</p>
       </header>
 
-      <section className="mb-6 grid grid-cols-2 gap-5 rounded-xl border bg-card p-5 sm:grid-cols-4">
-        <Stat label="İtibar" value={num(u.reputation)} hint="puan" />
-        <Stat label="Mülk" value={num(stats.properties)} />
-        <Stat label="Kiralık / satılık" value={`${num(stats.for_rent)} / ${num(stats.for_sale)}`} />
-        <Stat label="Kiracı" value={num(stats.tenants)} />
-      </section>
+      <div className="grid gap-8 lg:grid-cols-[340px_minmax(0,1fr)] lg:items-start">
+        <Section header="Özet">
+          <Row icon={Star} iconColor="yellow" title="İtibar" detail={<span className="tabular-nums">{num(u.reputation)} puan</span>} />
+          <Row icon={Buildings} iconColor="indigo" title="Mülk" detail={<span className="tabular-nums">{num(stats.properties)}</span>} />
+          <Row
+            icon={TagIcon}
+            iconColor="orange"
+            title="Kiralık / satılık"
+            detail={
+              <span className="tabular-nums">
+                {num(stats.for_rent)} / {num(stats.for_sale)}
+              </span>
+            }
+          />
+          <Row icon={Users} iconColor="green" title="Kiracı" detail={<span className="tabular-nums">{num(stats.tenants)}</span>} />
+        </Section>
 
-      <h2 className="mb-3 type-title-large">Mülkleri</h2>
-      {properties.length === 0 ? (
-        <EmptyState icon={<Building2 className="size-6" />} title="Henüz mülkü yok" />
-      ) : (
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {properties.map((p) => {
-            const type = typeByName[p.type]
-            const price =
-              p.status === "sale" ? { label: "Satış fiyatı", value: p.sale_price } : p.status === "rent" || p.status === "rented" ? { label: "Kira", value: p.rent_price } : null
-            return (
-              <li key={p.id}>
-                <Link
+        <Section header="Mülkleri">
+          {properties.length === 0 ? (
+            <li>
+              <EmptyState icon={<Buildings weight="fill" />} title="Henüz mülkü yok" className="py-10" />
+            </li>
+          ) : (
+            properties.map((p) => {
+              const type = typeByName[p.type]
+              const price =
+                p.status === "sale"
+                  ? { label: "Satış fiyatı", value: p.sale_price }
+                  : p.status === "rent" || p.status === "rented"
+                    ? { label: "Kira", value: p.rent_price }
+                    : null
+              return (
+                <Row
+                  key={p.id}
                   href={`/properties/${p.id}`}
-                  className="flex items-center gap-3 rounded-xl border bg-card p-3 outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/50"
+                  leading={
+                    <PropertyVisual
+                      property={{ id: p.id, collectionName: "properties", image: p.image, expand: { type } } as unknown as Property}
+                      className="size-14 shrink-0 overflow-hidden rounded-[12px]"
+                    />
+                  }
+                  className="py-1"
                 >
-                  <PropertyVisual
-                    property={{ id: p.id, collectionName: "properties", image: p.image, expand: { type } } as unknown as Property}
-                    className="size-16 shrink-0 overflow-hidden rounded-lg border bg-background"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate type-body-small text-muted-foreground">
-                      {p.type}, {p.city}
-                    </div>
-                    <div className="truncate font-medium">{p.name}</div>
-                    <div className="mt-1 flex items-center justify-between gap-2">
-                      <StatusBadge status={p.status} />
-                      {price && price.value > 0 && <Money value={price.value} className="type-title-small" />}
-                    </div>
-                  </div>
-                </Link>
-              </li>
-            )
-          })}
-        </ul>
-      )}
+                  <span className="block truncate text-headline text-label">{p.name}</span>
+                  <span className="block truncate text-subheadline text-label-secondary">
+                    {p.type} · {p.city}
+                  </span>
+                  <span className="mt-1 flex items-center gap-2">
+                    <StatusBadge status={p.status} />
+                    {price && price.value > 0 && (
+                      <span className="min-w-0 truncate text-subheadline text-label-secondary">
+                        <span className="sr-only">{price.label}: </span>
+                        <Money value={price.value} className="font-semibold text-label" />
+                      </span>
+                    )}
+                  </span>
+                </Row>
+              )
+            })
+          )}
+        </Section>
+      </div>
     </>
   )
 }
 
-function initials(name: string) {
+/** Profil fotoğrafı; yoksa baş harfli gri avatar. */
+function ProfileAvatar({ name, src, className }: { name: string; src?: string; className?: string }) {
+  if (!src) return <Avatar name={name} className={className} />
   return (
-    name
-      .split(" ")
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((s) => s[0]?.toLocaleUpperCase("tr-TR"))
-      .join("") || "?"
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt="" className={cn("shrink-0 rounded-full bg-fill-tertiary object-cover", className)} />
   )
 }
