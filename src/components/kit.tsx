@@ -96,24 +96,23 @@ export function PageHeader({
             scrolled ? "opacity-100" : "opacity-0",
           )}
         />
-        <div className="relative grid h-[52px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-4 sm:px-6 lg:px-8">
-          <div className="flex min-w-0 items-center">
-            {showBack && (
-              <Button variant="glass" size="icon" aria-label="Geri" onClick={goBack}>
-                <CaretLeft weight="bold" className="size-5" />
-              </Button>
-            )}
-          </div>
+        <div className="relative flex h-[52px] items-center gap-2 px-4 sm:px-6 lg:px-8">
+          {showBack && (
+            <Button variant="glass" size="icon" aria-label="Geri" onClick={goBack}>
+              <CaretLeft weight="bold" className="size-5" />
+            </Button>
+          )}
+          {/* Küçük başlık: solda, Liquid Glass kapsül içinde; büyük başlık kaydırılınca belirir. */}
           <div
             className={cn(
-              "max-w-[52vw] truncate text-center text-headline text-label transition-opacity duration-200",
-              collapsed ? "opacity-100" : "opacity-0",
+              "glass flex h-11 min-w-0 items-center rounded-full px-4 transition-[opacity,scale] duration-200 ease-ios",
+              collapsed ? "scale-100 opacity-100" : "pointer-events-none scale-95 opacity-0",
             )}
             aria-hidden={largeTitle}
           >
-            {title}
+            <span className="truncate text-headline text-label">{title}</span>
           </div>
-          <div className="flex min-w-0 items-center justify-end gap-2">{actions}</div>
+          <div className="ml-auto flex shrink-0 items-center gap-2">{actions}</div>
         </div>
       </div>
       {largeTitle ? (
