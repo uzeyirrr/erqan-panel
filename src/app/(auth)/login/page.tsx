@@ -7,7 +7,7 @@ import { errorMessage } from "@/lib/pb"
 import { useApp } from "@/components/app-provider"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { AppIcon } from "../_app-icon"
+import { AppIcon } from "@/components/brand"
 import { FieldGroup, StackedField } from "../_form"
 
 function LoginForm() {

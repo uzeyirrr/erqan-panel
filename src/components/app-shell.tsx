@@ -7,6 +7,7 @@ import { Wrench } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 import { money } from "@/lib/format"
 import { useApp } from "@/components/app-provider"
+import { AppIcon } from "@/components/brand"
 import { Avatar, EmptyState, Loading } from "@/components/kit"
 import { EdgeSwipeBack, skipNextNavAnimation } from "@/components/edge-swipe-back"
 import { PullToRefresh } from "@/components/pull-to-refresh"
@@ -101,7 +102,8 @@ function Sidebar({ pathname }: { pathname: string }) {
   return (
     <aside className="glass-thick fixed inset-y-2 left-2 z-30 hidden w-[304px] flex-col overflow-hidden rounded-[26px] [view-transition-name:sidebar] lg:flex">
       <div className="px-5 pt-6 pb-3">
-        <Link href="/dashboard" className="text-title1 text-label outline-none">
+        <Link href="/dashboard" className="flex items-center gap-3 text-title1 text-label outline-none">
+          <AppIcon className="size-9 shadow-none" />
           {config?.general.site_name || "Erqan"}
         </Link>
       </div>

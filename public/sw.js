@@ -3,12 +3,15 @@
 // ağdan gelir (bayat içerik gösterilmez), ağ yoksa offline sayfası gösterilir.
 // API (PocketBase) ayrı bir alan adında olduğu için hiç dokunulmaz.
 
-const VERSION = "erqan-v2"
+const VERSION = "erqan-v3"
 const OFFLINE_URL = "/offline.html"
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(VERSION).then((cache) => cache.addAll([OFFLINE_URL, "/icons/icon-192.png"])).then(() => self.skipWaiting()),
+    caches
+      .open(VERSION)
+      .then((cache) => cache.addAll([OFFLINE_URL, "/icons/icon-192.png", "/icons/apple-touch-icon.png"]))
+      .then(() => self.skipWaiting()),
   )
 })
 

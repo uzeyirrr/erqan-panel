@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils"
 import { useLoad } from "@/hooks/use-data"
 import { useApp } from "@/components/app-provider"
 import { BarButton, ErrorState, Loading, Money, PageHeader, Row, RowItem, Section, Tag } from "@/components/kit"
+import { InstallBanner } from "@/components/install-app"
 
 const compact = new Intl.NumberFormat("tr-TR", { notation: "compact", maximumFractionDigits: 1 })
 
@@ -91,6 +92,7 @@ export default function DashboardPage() {
       {p && (
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start">
           <div className="grid min-w-0 gap-4">
+            <InstallBanner />
             {/* Bakiye kartı (Apple Cash / Cüzdan dili) */}
             <section
               aria-label="Bakiye"

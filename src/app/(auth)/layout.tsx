@@ -1,5 +1,5 @@
 import { Buildings, ChartLineUp, Key } from "@phosphor-icons/react/ssr"
-import { AppIcon } from "./_app-icon"
+import { AppIcon } from "@/components/brand"
 
 // iOS "Yenilikler" (What's New) ekranı dili: renkli simgeler ve kısa açıklamalar.
 const POINTS = [

@@ -214,7 +214,7 @@ export function Section({
         <div className={cn("overflow-hidden rounded-section bg-grouped-secondary p-4", bodyClassName)}>{children}</div>
       ) : (
         // Üst ve alttaki boşluk, ilk/son satırın içeriğini yuvarlak köşelerden uzak tutar.
-        <ul className={cn("overflow-hidden rounded-section bg-grouped-secondary py-1.5", bodyClassName)}>{children}</ul>
+        <ul className={cn("overflow-hidden rounded-section bg-grouped-secondary py-2.5", bodyClassName)}>{children}</ul>
       )}
       {footer && <div className="mt-1.5 px-4 text-footnote text-label-secondary">{footer}</div>}
     </section>

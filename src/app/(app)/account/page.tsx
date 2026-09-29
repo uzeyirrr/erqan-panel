@@ -10,6 +10,7 @@ import { date, money, num } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { useApp } from "@/components/app-provider"
 import { ADMIN, MORE } from "@/components/nav"
+import { InstallRow } from "@/components/install-app"
 import { ConfirmDialog, FieldRow, Notice, PageHeader, Row, Section, inlineInput } from "@/components/kit"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -64,6 +65,7 @@ export default function AccountPage() {
             {config?.features.public_profiles && (
               <Row href={`/users/${user.id}`} icon={Globe} iconColor="blue" title="Herkese Açık Profil" />
             )}
+            <InstallRow />
           </Section>
         </div>
 

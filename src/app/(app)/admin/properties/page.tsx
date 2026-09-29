@@ -215,7 +215,7 @@ export default function AdminPropertiesPage() {
           {candidates.length > 0 && (
             <section className="min-w-0">
               <h2 className="mb-1.5 px-4 text-footnote font-semibold tracking-wide text-label-secondary uppercase">Yeni sahip</h2>
-              <ul role="listbox" aria-label="Kullanıcılar" className="overflow-hidden rounded-section bg-grouped-secondary py-1.5">
+              <ul role="listbox" aria-label="Kullanıcılar" className="overflow-hidden rounded-section bg-grouped-secondary py-2.5">
                 {candidates.map((u) => {
                   const on = transfer.owner === u.id
                   return (

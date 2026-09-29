@@ -107,6 +107,17 @@ Tutarlar `tabular-nums` ile yazılır.
 - **Sayfalar (sheet)** tutamaçtan aşağı kaydırılarak kapanır; bildirimler sola kaydırılarak silinir.
 - *Hareketi Azalt* açıksa tüm animasyonlar kapanır.
 
+## PWA (ana ekrana ekleme)
+
+- **Simge:** erqan.com logosundaki EQ monogramı, vurgu mavisi degrade üzerinde beyaz
+  (`src/components/brand.tsx` içinde SVG olarak; PNG'ler `scripts/pwa-assets.py` ile üretilir).
+- **iOS açılış ekranları:** 12 iPhone boyutu × açık/koyu (`public/splash`,
+  `src/app/splash-screens.json`); ana ekrandan açılışta beyaz ekran yerine simge görünür.
+- **Yükleme:** Android / Chrome'da sistem penceresi (`beforeinstallprompt`), iPhone'da
+  "Paylaş → Ana Ekrana Ekle" talimat sayfası. Özet'te kapatılabilir kart, Hesap'ta satır
+  (`src/components/install-app.tsx`); uygulama zaten ana ekrandan açıldıysa gösterilmez.
+- Manifest: dikey yön, kısayollar (Satın Al, İlanlar, Mülklerim, Cüzdan), maskable simge.
+
 ## Simgeler
 
 [Phosphor](https://phosphoricons.com) (SF Symbols'e en yakın açık kaynak set). Sekme çubuğu ve

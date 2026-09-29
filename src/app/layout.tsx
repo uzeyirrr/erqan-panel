@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import { AppProvider } from "@/components/app-provider"
 import { PwaRegister } from "@/components/pwa-register"
+import splashScreens from "./splash-screens.json"
 import "./globals.css"
 
 // Apple cihazlarda sistem yazı tipi (SF Pro) kullanılır; diğer platformlarda ona en yakın
@@ -17,8 +18,12 @@ export const metadata: Metadata = {
   title: { default: "Erqan Panel", template: "%s | Erqan" },
   description: "Sanal emlak yatırımlarınızı yönetin: mülk satın alın, kiraya verin, kazancınızı takip edin.",
   applicationName: "Erqan",
-  appleWebApp: { capable: true, title: "Erqan", statusBarStyle: "default" },
-  icons: { apple: "/icons/apple-touch-icon.png" },
+  // iOS: ana ekrandan açılınca tam ekran, cihaza ve açık/koyu görünüme uygun açılış ekranı.
+  appleWebApp: { capable: true, title: "Erqan", statusBarStyle: "default", startupImage: splashScreens },
+  icons: {
+    icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: "/icons/apple-touch-icon.png",
+  },
   formatDetection: { telephone: false },
 }
 
