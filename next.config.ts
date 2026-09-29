@@ -1,9 +1,8 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true, // ❗ Eslint hatalarını build sırasında yoksay
-  },
-};
+  // Docker imajı için yalnızca gerekli dosyaları içeren çıktı
+  output: "standalone",
+}
 
-export default nextConfig;
+export default nextConfig
