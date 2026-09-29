@@ -55,7 +55,7 @@ Tutarlar `tabular-nums` ile yazılır.
 
 ## Şekil
 
-`rounded-section` (20, gruplu bölüm), `rounded-card` (20, kart; içindeki görsel 6 pt içeride 14), `rounded-field` (12, metin alanı),
+`rounded-section` (26, gruplu bölüm), `rounded-card` (22, kart), `rounded-field` (12, metin alanı),
 `rounded-alert` (34), `rounded-sheet` (38); düğmeler, sekme çubuğu, etiketler kapsül (`rounded-full`).
 
 ## Bileşenler

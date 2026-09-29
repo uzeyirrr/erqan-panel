@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 // (Apple Hesabı ile giriş ekranı). Etiketler ekran okuyucular için gizli tutulur.
 
 export function FieldGroup({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <ul className={cn("overflow-hidden rounded-section bg-grouped-secondary", className)}>{children}</ul>
+  return <ul className={cn("overflow-hidden rounded-section bg-grouped-secondary py-1.5", className)}>{children}</ul>
 }
 
 export function StackedField({

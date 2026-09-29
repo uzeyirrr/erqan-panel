@@ -51,7 +51,7 @@ export function PropertyCard({
         href={`/properties/${property.id}`}
         className="press-scale block rounded-card outline-none focus-visible:outline-2 focus-visible:-outline-offset-2"
       >
-        <div className="relative m-1.5 mb-0 aspect-[16/10] overflow-hidden rounded-[14px] bg-fill-tertiary">
+        <div className="relative m-1.5 mb-0 aspect-[16/10] overflow-hidden rounded-[17px] bg-fill-tertiary">
           <PropertyVisual property={property} className="size-full" />
           <span className="glass-thick absolute top-2.5 left-2.5 inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-caption1 font-semibold text-label">
             <span className="size-2 rounded-full" style={{ background: STATUS_DOT[property.status] }} aria-hidden="true" />

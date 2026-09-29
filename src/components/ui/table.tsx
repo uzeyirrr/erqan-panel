@@ -4,7 +4,7 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 // Çok sütunlu yönetim verileri için tablo. iOS'ta tablo yerine liste kullanılır; bu yüzden
-// tablo gruplu bir bölüm gibi görünür (beyaz zemin, ince ayırıcılar, 20 pt köşe) ve dar
+// tablo gruplu bir bölüm gibi görünür (beyaz zemin, ince ayırıcılar, 26 pt köşe) ve dar
 // ekranlarda yatay kaydırılır.
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {

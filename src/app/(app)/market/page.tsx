@@ -80,7 +80,7 @@ function TypeCard({
 
   return (
     <article className="flex min-w-0 flex-col overflow-hidden rounded-card bg-grouped-secondary shadow-card">
-      <div className="relative m-1.5 mb-0 h-28 overflow-hidden rounded-[14px] bg-fill-tertiary">
+      <div className="relative m-1.5 mb-0 h-28 overflow-hidden rounded-[17px] bg-fill-tertiary">
         {img ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={img} alt="" className="size-full object-cover" />

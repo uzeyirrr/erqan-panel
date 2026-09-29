@@ -213,7 +213,8 @@ export function Section({
       {plain ? (
         <div className={cn("overflow-hidden rounded-section bg-grouped-secondary p-4", bodyClassName)}>{children}</div>
       ) : (
-        <ul className={cn("overflow-hidden rounded-section bg-grouped-secondary", bodyClassName)}>{children}</ul>
+        // Üst ve alttaki boşluk, ilk/son satırın içeriğini yuvarlak köşelerden uzak tutar.
+        <ul className={cn("overflow-hidden rounded-section bg-grouped-secondary py-1.5", bodyClassName)}>{children}</ul>
       )}
       {footer && <div className="mt-1.5 px-4 text-footnote text-label-secondary">{footer}</div>}
     </section>
@@ -537,7 +538,7 @@ export function Notice({
 }) {
   const color = { gray: "text-label-secondary", red: "text-system-red", orange: "text-system-orange", tint: "text-tint" }[tone]
   return (
-    <div className={cn("flex items-start gap-3 rounded-section bg-grouped-secondary px-4 py-3 text-subheadline text-label", className)}>
+    <div className={cn("flex items-start gap-3 rounded-section bg-grouped-secondary px-4 py-3.5 text-subheadline text-label", className)}>
       {Icon && <Icon weight="fill" className={cn("mt-px size-5 shrink-0", color)} />}
       <div className="min-w-0 flex-1">{children}</div>
     </div>
