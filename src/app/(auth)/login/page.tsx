@@ -5,10 +5,10 @@ import { Suspense, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { errorMessage } from "@/lib/pb"
 import { useApp } from "@/components/app-provider"
-import { Button } from "@/components/ui/button"
+import { EnvelopeSimple, LockSimple } from "@phosphor-icons/react"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { AppIcon } from "@/components/brand"
-import { FieldGroup, StackedField } from "../_form"
+import { AuthHeader, FieldGroup, OrDivider, PasswordField, StackedField } from "../_form"
 
 function LoginForm() {
   const { login, user, ready } = useApp()
@@ -44,6 +44,7 @@ function LoginForm() {
         <StackedField
           id="email"
           label="E-posta"
+          icon={EnvelopeSimple}
           type="email"
           inputMode="email"
           autoComplete="email"
@@ -52,10 +53,10 @@ function LoginForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
-        <StackedField
+        <PasswordField
           id="password"
           label="Şifre"
-          type="password"
+          icon={LockSimple}
           autoComplete="current-password"
           required
           value={password}
@@ -63,11 +64,11 @@ function LoginForm() {
         />
       </FieldGroup>
       {error && (
-        <p role="alert" className="px-4 text-footnote text-system-red">
+        <p role="alert" className="px-1 text-footnote text-system-red lg:px-0">
           {error}
         </p>
       )}
-      <Button type="submit" size="lg" className="mt-2 w-full" disabled={pending}>
+      <Button type="submit" size="lg" className="mt-1 w-full" disabled={pending}>
         {pending ? <Spinner className="size-5" /> : "Giriş Yap"}
       </Button>
     </form>
@@ -77,20 +78,14 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <>
-      <div className="mb-8 flex flex-col items-center text-center">
-        <AppIcon className="size-[76px] lg:hidden" />
-        <h1 className="mt-5 text-title1 text-label lg:mt-0">Giriş Yap</h1>
-        <p className="mt-1.5 text-subheadline text-label-secondary">Portföyünüze ve kira gelirinize devam edin.</p>
-      </div>
+      <AuthHeader title="Tekrar hoş geldiniz" subtitle="Portföyünüze ve kira gelirinize kaldığınız yerden devam edin." />
       <Suspense>
         <LoginForm />
       </Suspense>
-      <p className="mt-8 text-center text-subheadline text-label-secondary">
-        Hesabınız yok mu?{" "}
-        <Link href="/register" className="font-semibold text-tint press-dim">
-          Kayıt olun
-        </Link>
-      </p>
+      <OrDivider />
+      <Link href="/register" className={buttonVariants({ variant: "secondary", size: "lg", className: "w-full" })}>
+        Yeni Hesap Oluştur
+      </Link>
     </>
   )
 }

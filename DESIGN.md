@@ -114,11 +114,20 @@ macOS 26 görünümünü alır; dokunmatik geniş ekranlar (iPad) iPadOS ölçü
   (Vazgeç + birincil eylem). **Uyarılar:** dar, ortalı, üstte uygulama simgesi.
 - **Bildirimler** sağ üstten gelir; basılan düğmeler küçülmek yerine hafifçe kararır.
 
+## Giriş ve kayıt ekranı (`src/app/(auth)`)
+
+- Yavaşça salınan renk bulutları (vurgu, indigo, camgöbeği; `animate-aurora`) üzerinde
+  Liquid Glass kart. Telefonda tek sütun: uygulama simgesi, başlık, simgeli alanlar, birincil
+  düğme, "veya" ayırıcısı ve ikincil düğme.
+- Geniş ekranda iki bölmeli kart: solda marka ve "Yenilikler" listesi, sağda form.
+- Şifre alanında göster / gizle düğmesi (`PasswordField`); alanlar `_form.tsx` içindedir.
+
 ## Hareket ve jestler
 
 - **Push / pop:** alt sayfaya gidince yeni sayfa sağdan kayarak gelir (React `ViewTransition`,
   `globals.css`); geri dönünce eski sayfa sağa kayar, önceki sayfa soldan gelir (`app-shell.tsx`).
   Sekmeler arası geçiş anlıktır; Safari'nin kendi kaydırma animasyonu varsa tekrar oynatılmaz.
+  **Masaüstünde (macOS) kaydırma animasyonu yoktur**, içerik yerinde değişir.
 - **Kenardan kaydırarak geri gitme** ve **aşağı çekerek yenileme** yalnızca ana ekrana eklenmiş
   uygulamada (standalone) çalışır; tarayıcıda tarayıcının kendi hareketleri geçerlidir.
 - **Sayfalar (sheet)** tutamaçtan aşağı kaydırılarak kapanır; bildirimler sola kaydırılarak silinir.

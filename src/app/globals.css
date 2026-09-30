@@ -184,6 +184,7 @@
   --animate-alert-out: alert-out 0.2s ease-in forwards;
   --animate-fade-in: fade-in 0.3s var(--ease-ios);
   --animate-fade-out: fade-out 0.25s var(--ease-ios) forwards;
+  --animate-aurora: aurora 26s ease-in-out infinite alternate;
 
   @keyframes sheet-in {
     from {
@@ -205,6 +206,18 @@
     to {
       opacity: 0;
       transform: scale(0.96);
+    }
+  }
+  /* Giriş ekranı arka planındaki renk bulutlarının yavaş salınımı */
+  @keyframes aurora {
+    0% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(7vmax, 4vmax, 0) scale(1.1);
+    }
+    100% {
+      transform: translate3d(-5vmax, 7vmax, 0) scale(0.95);
     }
   }
   @keyframes fade-in {

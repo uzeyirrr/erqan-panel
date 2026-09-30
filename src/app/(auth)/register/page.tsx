@@ -3,15 +3,14 @@
 import Link from "next/link"
 import { Suspense, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Gift, LockSimple } from "@phosphor-icons/react"
+import { EnvelopeSimple, Gift, LockSimple, Ticket, UserCircle } from "@phosphor-icons/react"
 import { errorMessage, pb } from "@/lib/pb"
 import { money } from "@/lib/format"
 import { useApp } from "@/components/app-provider"
 import { EmptyState, Notice } from "@/components/kit"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { AppIcon } from "@/components/brand"
-import { FieldGroup, StackedField } from "../_form"
+import { AuthHeader, FieldGroup, OrDivider, PasswordField, StackedField } from "../_form"
 
 function RegisterForm() {
   const { login, user, ready, config, currency } = useApp()
@@ -69,15 +68,24 @@ function RegisterForm() {
   return (
     <form onSubmit={onSubmit} className="grid gap-4">
       {bonus > 0 && (
-        <Notice tone="orange" icon={Gift}>
+        <Notice tone="orange" icon={Gift} className="rounded-[20px] bg-grouped-secondary/90 dark:bg-grouped-tertiary/80 desk:rounded-[10px]">
           Kayıt olduğunuzda hesabınıza {money(bonus, currency)} başlangıç kredisi eklenir.
         </Notice>
       )}
       <FieldGroup>
-        <StackedField id="name" label="Ad soyad" autoComplete="name" required value={name} onChange={(e) => setName(e.target.value)} />
+        <StackedField
+          id="name"
+          label="Ad soyad"
+          icon={UserCircle}
+          autoComplete="name"
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
         <StackedField
           id="email"
           label="E-posta"
+          icon={EnvelopeSimple}
           type="email"
           inputMode="email"
           autoComplete="email"
@@ -86,10 +94,10 @@ function RegisterForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
-        <StackedField
+        <PasswordField
           id="password"
           label="Şifre (en az 8 karakter)"
-          type="password"
+          icon={LockSimple}
           autoComplete="new-password"
           required
           minLength={8}
@@ -102,6 +110,7 @@ function RegisterForm() {
           <StackedField
             id="invite"
             label="Davet kodu (isteğe bağlı)"
+            icon={Ticket}
             value={invite}
             onChange={(e) => setInvite(e.target.value.toUpperCase())}
             className="uppercase placeholder:normal-case"
@@ -111,11 +120,11 @@ function RegisterForm() {
         </FieldGroup>
       )}
       {error && (
-        <p role="alert" className="px-4 text-footnote text-system-red">
+        <p role="alert" className="px-1 text-footnote text-system-red lg:px-0">
           {error}
         </p>
       )}
-      <Button type="submit" size="lg" className="mt-2 w-full" disabled={pending}>
+      <Button type="submit" size="lg" className="mt-1 w-full" disabled={pending}>
         {pending ? <Spinner className="size-5" /> : "Hesap Oluştur"}
       </Button>
     </form>
@@ -125,20 +134,14 @@ function RegisterForm() {
 export default function RegisterPage() {
   return (
     <>
-      <div className="mb-8 flex flex-col items-center text-center">
-        <AppIcon className="size-[76px] lg:hidden" />
-        <h1 className="mt-5 text-title1 text-label lg:mt-0">Hesap Oluştur</h1>
-        <p className="mt-1.5 text-subheadline text-label-secondary">İlk mülkünüzü birkaç dakika içinde alabilirsiniz.</p>
-      </div>
+      <AuthHeader title="Hesap oluşturun" subtitle="İlk mülkünüzü birkaç dakika içinde alabilirsiniz." />
       <Suspense>
         <RegisterForm />
       </Suspense>
-      <p className="mt-8 text-center text-subheadline text-label-secondary">
-        Zaten hesabınız var mı?{" "}
-        <Link href="/login" className="font-semibold text-tint press-dim">
-          Giriş yapın
-        </Link>
-      </p>
+      <OrDivider />
+      <Link href="/login" className={buttonVariants({ variant: "secondary", size: "lg", className: "w-full" })}>
+        Zaten hesabım var
+      </Link>
     </>
   )
 }

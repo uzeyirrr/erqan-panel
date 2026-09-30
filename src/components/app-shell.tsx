@@ -193,6 +193,8 @@ function Sidebar({ pathname }: { pathname: string }) {
 }
 
 const EASE_IOS = "cubic-bezier(0.32, 0.72, 0, 1)"
+/** macOS'ta (masaüstü + fare) sayfalar arasında kaydırma animasyonu yoktur; içerik yerinde değişir. */
+const isDesk = () => window.matchMedia("(min-width: 1024px) and (pointer: fine)").matches
 const NAV_MS = 450
 
 /**
@@ -242,7 +244,7 @@ function slideOutSnapshot() {
  * gelir (View Transition, animasyonlar globals.css'te), geri dönünce eski sayfa sağa kayarken
  * önceki sayfa soldan gelir; sekmeler arası geçiş anlıktır. Safari'nin kendi kaydırarak geri
  * gitme animasyonu varsa (hasUAVisualTransition) ya da kenardan kaydırma hareketi zaten
- * oynattıysa tekrar oynatılmaz.
+ * oynattıysa tekrar oynatılmaz. Masaüstünde (macOS) animasyon yoktur.
  */
 function useNavDirection(pathname: string, mainRef: React.RefObject<HTMLElement | null>) {
   const pop = useRef<{ pop: boolean; animate: boolean }>({ pop: false, animate: false })
@@ -251,7 +253,8 @@ function useNavDirection(pathname: string, mainRef: React.RefObject<HTMLElement 
   useEffect(() => {
     const onPop = (e: PopStateEvent) => {
       const ua = !!(e as PopStateEvent & { hasUAVisualTransition?: boolean }).hasUAVisualTransition
-      const animate = !ua && !skipNextNavAnimation.current && !matchMedia("(prefers-reduced-motion: reduce)").matches
+      const animate =
+        !ua && !skipNextNavAnimation.current && !isDesk() && !matchMedia("(prefers-reduced-motion: reduce)").matches
       pop.current = { pop: true, animate }
       if (animate) slideOutSnapshot()
     }
@@ -265,7 +268,7 @@ function useNavDirection(pathname: string, mainRef: React.RefObject<HTMLElement 
     const { pop: back, animate } = pop.current
     pop.current = { pop: false, animate: false }
     navStack.depth = back ? Math.max(0, navStack.depth - 1) : navStack.depth + 1
-    const skip = skipNextNavAnimation.current
+    const skip = skipNextNavAnimation.current || isDesk()
     skipNextNavAnimation.current = false
     document.documentElement.dataset.nav = skip || back ? "none" : isTabRoot(pathname) ? "none" : "forward"
     if (back && animate) {
