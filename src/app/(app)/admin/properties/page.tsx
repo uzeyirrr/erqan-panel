@@ -225,7 +225,7 @@ export default function AdminPropertiesPage() {
                         role="option"
                         aria-selected={on}
                         onClick={() => setTransfer({ ...transfer, owner: u.id })}
-                        className="press-row flex min-h-11 w-full items-center gap-3 px-4 text-left outline-none focus-visible:bg-fill-quaternary"
+                        className="press-row flex min-h-11 w-full items-center gap-3 px-4 text-left outline-none focus-visible:bg-fill-quaternary desk:min-h-9 desk:px-3"
                       >
                         <Avatar name={u.name || u.email} className="size-9 text-subheadline" />
                         <span className="relative flex min-w-0 flex-1 items-center gap-3 self-stretch py-2.5 after:hairline after:absolute after:bottom-0 after:left-0 after:-right-4 after:bg-separator group-last/row:after:hidden">

@@ -97,6 +97,23 @@ Tutarlar `tabular-nums` ile yazılır.
 - Sayfa içi seçim: 2–4 seçenek → `Segmented`; çok seçenek → `Chips`; ayrıntılı filtre → sayfa (sheet).
 - Oluştur / düzenle → sayfa (sheet), onay / geri alınamaz işlem → uyarı (alert).
 
+## macOS (masaüstü)
+
+Geniş ekran **ve** fare/izleme dörtgeni (`desk` varyantı: `min-width: 1024px` + `pointer: fine`)
+macOS 26 görünümünü alır; dokunmatik geniş ekranlar (iPad) iPadOS ölçülerinde kalır.
+
+- **Tipografi:** macOS metin stilleri — Large Title 26, Title 1 22, Title 2 17, Title 3 15,
+  Headline 13 kalın, Body 13, Callout 12, Subheadline 11, Footnote/Caption 10. Aynı `text-*`
+  sınıfları kullanılır; boyutlar `--ts-*` değişkenlerinden gelir.
+- **Yoğunluk:** satırlar 36, düğmeler 32 / 28 / 24, metin alanları ve açılır düğmeler 28,
+  bölümlü kontrol 28, anahtar 40×22 (açıkken vurgu rengi), onay kutusu yuvarlatılmış kare.
+  Köşeler: bölüm 12, kart 14, alan 7, uyarı 22, sayfa 20. Bölümlerde ince kenar çizgisi.
+- **Pencere:** Sistem Ayarları tarzı kenar çubuğu (arama, hesap satırı, renkli simgeler, vurgu
+  renginde seçim), üst çubukta düz pencere başlığı ve cam düğmeler.
+- **Sayfalar (sheet):** pencerenin üstünden iner; başlık solda, düğmeler altta sağda
+  (Vazgeç + birincil eylem). **Uyarılar:** dar, ortalı, üstte uygulama simgesi.
+- **Bildirimler** sağ üstten gelir; basılan düğmeler küçülmek yerine hafifçe kararır.
+
 ## Hareket ve jestler
 
 - **Push / pop:** alt sayfaya gidince yeni sayfa sağdan kayarak gelir (React `ViewTransition`,

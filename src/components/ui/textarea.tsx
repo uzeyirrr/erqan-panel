@@ -8,6 +8,7 @@ function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
       className={cn(
         "flex field-sizing-content min-h-24 w-full min-w-0 rounded-field bg-fill-tertiary px-4 py-3 text-body text-label caret-tint outline-none placeholder:text-label-tertiary",
         "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-tint/60",
+        "desk:min-h-16 desk:px-2.5 desk:py-1.5",
         "disabled:pointer-events-none disabled:text-label-tertiary aria-invalid:outline-2 aria-invalid:-outline-offset-2 aria-invalid:outline-system-red",
         className,
       )}

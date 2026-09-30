@@ -176,7 +176,7 @@ function RentalRow({
           disabled={pending}
           onClick={r.cancel_at_period_end ? onResume : onEnd}
           className={cn(
-            "press-row flex min-h-11 w-full items-center gap-2 pr-4 pl-[84px] text-left text-body outline-none focus-visible:bg-fill-quaternary disabled:opacity-50",
+            "press-row flex min-h-11 w-full items-center gap-2 pr-4 pl-[84px] text-left text-body outline-none focus-visible:bg-fill-quaternary disabled:opacity-50 desk:min-h-9 desk:pr-3",
             r.cancel_at_period_end ? "text-tint" : "text-system-red",
           )}
         >

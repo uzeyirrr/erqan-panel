@@ -10,6 +10,12 @@
  */
 
 @custom-variant dark (&:is(.dark *));
+/* Masaüstü + fare/izleme dörtgeni: macOS yoğunluğu. Dokunmatik geniş ekranlar (iPad) iOS/iPadOS ölçülerinde kalır. */
+@custom-variant desk {
+  @media (min-width: 1024px) and (pointer: fine) {
+    @slot;
+  }
+}
 
 @theme inline {
   --font-sans: -apple-system, BlinkMacSystemFont, var(--font-inter), system-ui, "Segoe UI", Roboto, "Helvetica Neue",
@@ -98,58 +104,58 @@
   --color-chart-5: var(--system-red);
 
   /*
-   * iOS metin stilleri, Large (varsayılan) Dynamic Type boyutu:
+   * Metin stilleri: iPhone/iPad'de iOS (Dynamic Type "Large"), masaüstünde macOS değerleri.
    * https://developer.apple.com/design/human-interface-guidelines/typography#Specifications
-   * İzleme (tracking) değerleri SF Pro tablosundan.
+   * Boyutlar :root ve `desk` medya sorgusundaki --ts-* değişkenlerinden gelir.
    */
-  --text-large-title: 34px;
-  --text-large-title--line-height: 41px;
-  --text-large-title--letter-spacing: 0.4px;
-  --text-large-title--font-weight: 700;
-  --text-title1: 28px;
-  --text-title1--line-height: 34px;
-  --text-title1--letter-spacing: 0.38px;
-  --text-title1--font-weight: 700;
-  --text-title2: 22px;
-  --text-title2--line-height: 28px;
-  --text-title2--letter-spacing: -0.26px;
-  --text-title2--font-weight: 700;
-  --text-title3: 20px;
-  --text-title3--line-height: 25px;
-  --text-title3--letter-spacing: -0.45px;
-  --text-title3--font-weight: 600;
-  --text-headline: 17px;
-  --text-headline--line-height: 22px;
-  --text-headline--letter-spacing: -0.43px;
-  --text-headline--font-weight: 600;
-  --text-body: 17px;
-  --text-body--line-height: 22px;
-  --text-body--letter-spacing: -0.43px;
-  --text-body--font-weight: 400;
-  --text-callout: 16px;
-  --text-callout--line-height: 21px;
-  --text-callout--letter-spacing: -0.31px;
-  --text-callout--font-weight: 400;
-  --text-subheadline: 15px;
-  --text-subheadline--line-height: 20px;
-  --text-subheadline--letter-spacing: -0.23px;
-  --text-subheadline--font-weight: 400;
-  --text-footnote: 13px;
-  --text-footnote--line-height: 18px;
-  --text-footnote--letter-spacing: -0.08px;
-  --text-footnote--font-weight: 400;
-  --text-caption1: 12px;
-  --text-caption1--line-height: 16px;
-  --text-caption1--letter-spacing: 0px;
-  --text-caption1--font-weight: 400;
-  --text-caption2: 11px;
-  --text-caption2--line-height: 13px;
-  --text-caption2--letter-spacing: 0.06px;
-  --text-caption2--font-weight: 400;
+  --text-large-title: var(--ts-large-title);
+  --text-large-title--line-height: var(--ts-large-title-lh);
+  --text-large-title--letter-spacing: var(--ts-large-title-ls);
+  --text-large-title--font-weight: var(--ts-large-title-w, 700);
+  --text-title1: var(--ts-title1);
+  --text-title1--line-height: var(--ts-title1-lh);
+  --text-title1--letter-spacing: var(--ts-title1-ls);
+  --text-title1--font-weight: var(--ts-title1-w, 700);
+  --text-title2: var(--ts-title2);
+  --text-title2--line-height: var(--ts-title2-lh);
+  --text-title2--letter-spacing: var(--ts-title2-ls);
+  --text-title2--font-weight: var(--ts-title2-w, 700);
+  --text-title3: var(--ts-title3);
+  --text-title3--line-height: var(--ts-title3-lh);
+  --text-title3--letter-spacing: var(--ts-title3-ls);
+  --text-title3--font-weight: var(--ts-title3-w, 600);
+  --text-headline: var(--ts-headline);
+  --text-headline--line-height: var(--ts-headline-lh);
+  --text-headline--letter-spacing: var(--ts-headline-ls);
+  --text-headline--font-weight: var(--ts-headline-w, 600);
+  --text-body: var(--ts-body);
+  --text-body--line-height: var(--ts-body-lh);
+  --text-body--letter-spacing: var(--ts-body-ls);
+  --text-body--font-weight: var(--ts-body-w, 400);
+  --text-callout: var(--ts-callout);
+  --text-callout--line-height: var(--ts-callout-lh);
+  --text-callout--letter-spacing: var(--ts-callout-ls);
+  --text-callout--font-weight: var(--ts-callout-w, 400);
+  --text-subheadline: var(--ts-subheadline);
+  --text-subheadline--line-height: var(--ts-subheadline-lh);
+  --text-subheadline--letter-spacing: var(--ts-subheadline-ls);
+  --text-subheadline--font-weight: var(--ts-subheadline-w, 400);
+  --text-footnote: var(--ts-footnote);
+  --text-footnote--line-height: var(--ts-footnote-lh);
+  --text-footnote--letter-spacing: var(--ts-footnote-ls);
+  --text-footnote--font-weight: var(--ts-footnote-w, 400);
+  --text-caption1: var(--ts-caption1);
+  --text-caption1--line-height: var(--ts-caption1-lh);
+  --text-caption1--letter-spacing: var(--ts-caption1-ls);
+  --text-caption1--font-weight: var(--ts-caption1-w, 400);
+  --text-caption2: var(--ts-caption2);
+  --text-caption2--line-height: var(--ts-caption2-lh);
+  --text-caption2--letter-spacing: var(--ts-caption2-ls);
+  --text-caption2--font-weight: var(--ts-caption2-w, 400);
 
   /*
-   * Köşe yarıçapları (iOS 26): gruplu liste bölümü 26, kart 22, alan 12,
-   * uyarı (alert) 34, sayfa (sheet) 38; butonlar ve sekme çubuğu kapsül (rounded-full).
+   * Köşe yarıçapları: iOS 26'da gruplu bölüm 26, kart 22, alan 12, uyarı 34, sayfa 38;
+   * macOS'ta daha küçük (bkz. `desk`). Butonlar ve sekme çubuğu kapsül (rounded-full).
    */
   --radius-xs: 6px;
   --radius-sm: 8px;
@@ -159,11 +165,11 @@
   --radius-2xl: 20px;
   --radius-3xl: 26px;
   --radius-4xl: 34px;
-  --radius-field: 12px;
-  --radius-card: 22px;
-  --radius-section: 26px;
-  --radius-alert: 34px;
-  --radius-sheet: 38px;
+  --radius-field: var(--r-field);
+  --radius-card: var(--r-card);
+  --radius-section: var(--r-section);
+  --radius-alert: var(--r-alert);
+  --radius-sheet: var(--r-sheet);
 
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 1px 1px rgb(0 0 0 / 0.02);
   --shadow-float: 0 10px 40px rgb(0 0 0 / 0.14), 0 2px 10px rgb(0 0 0 / 0.06);
@@ -216,6 +222,49 @@
 /* --------------------------------------------------------------- açık görünüm */
 :root {
   color-scheme: light;
+
+  /* iOS metin stilleri (Large) */
+  --ts-large-title: 34px;
+  --ts-large-title-lh: 41px;
+  --ts-large-title-ls: 0.4px;
+  --ts-title1: 28px;
+  --ts-title1-lh: 34px;
+  --ts-title1-ls: 0.38px;
+  --ts-title2: 22px;
+  --ts-title2-lh: 28px;
+  --ts-title2-ls: -0.26px;
+  --ts-title3: 20px;
+  --ts-title3-lh: 25px;
+  --ts-title3-ls: -0.45px;
+  --ts-headline: 17px;
+  --ts-headline-lh: 22px;
+  --ts-headline-ls: -0.43px;
+  --ts-body: 17px;
+  --ts-body-lh: 22px;
+  --ts-body-ls: -0.43px;
+  --ts-callout: 16px;
+  --ts-callout-lh: 21px;
+  --ts-callout-ls: -0.31px;
+  --ts-subheadline: 15px;
+  --ts-subheadline-lh: 20px;
+  --ts-subheadline-ls: -0.23px;
+  --ts-footnote: 13px;
+  --ts-footnote-lh: 18px;
+  --ts-footnote-ls: -0.08px;
+  --ts-caption1: 12px;
+  --ts-caption1-lh: 16px;
+  --ts-caption1-ls: 0px;
+  --ts-caption2: 11px;
+  --ts-caption2-lh: 13px;
+  --ts-caption2-ls: 0.06px;
+  --ts-headline-w: 600;
+
+  --r-field: 12px;
+  --r-card: 22px;
+  --r-section: 26px;
+  --r-alert: 34px;
+  --r-sheet: 38px;
+  --section-edge: transparent;
 
   --tint-base: #0f91e3;
   --tint: var(--tint-base);
@@ -342,6 +391,77 @@
   --highlight: #48484a;
 }
 
+/*
+ * macOS (masaüstü + fare): metin stilleri, köşe yarıçapları ve pencere renkleri.
+ * https://developer.apple.com/design/human-interface-guidelines/typography#macOS-built-in-text-styles
+ */
+@media (min-width: 1024px) and (pointer: fine) {
+  :root {
+    --ts-large-title: 26px;
+    --ts-large-title-lh: 32px;
+    --ts-large-title-ls: 0.22px;
+    --ts-title1: 22px;
+    --ts-title1-lh: 26px;
+    --ts-title1-ls: -0.26px;
+    --ts-title2: 17px;
+    --ts-title2-lh: 22px;
+    --ts-title2-ls: -0.43px;
+    --ts-title3: 15px;
+    --ts-title3-lh: 20px;
+    --ts-title3-ls: -0.23px;
+    --ts-headline: 13px;
+    --ts-headline-lh: 16px;
+    --ts-headline-ls: -0.08px;
+    --ts-body: 13px;
+    --ts-body-lh: 16px;
+    --ts-body-ls: -0.08px;
+    --ts-callout: 12px;
+    --ts-callout-lh: 15px;
+    --ts-callout-ls: 0px;
+    --ts-subheadline: 11px;
+    --ts-subheadline-lh: 14px;
+    --ts-subheadline-ls: 0.06px;
+    --ts-footnote: 10px;
+    --ts-footnote-lh: 13px;
+    --ts-footnote-ls: 0.12px;
+    --ts-caption1: 10px;
+    --ts-caption1-lh: 13px;
+    --ts-caption1-ls: 0.12px;
+    --ts-caption2: 10px;
+    --ts-caption2-lh: 13px;
+    --ts-caption2-ls: 0.12px;
+    --ts-headline-w: 700;
+
+    --r-field: 7px;
+    --r-card: 14px;
+    --r-section: 12px;
+    --r-alert: 22px;
+    --r-sheet: 20px;
+
+    /* Pencere arka planı ve gruplu kutular (Sistem Ayarları) */
+    --grouped: #f0f0f2;
+    --grouped-secondary: #ffffff;
+    --grouped-tertiary: #f5f5f7;
+    --highlight: #e3e3e6;
+    --section-edge: rgb(0 0 0 / 0.07);
+  }
+  .dark {
+    --grouped: #1e1e1e;
+    --grouped-secondary: #2a2a2a;
+    --grouped-tertiary: #333333;
+    --background: #1e1e1e;
+    --background-secondary: #2a2a2a;
+    --highlight: #3a3a3a;
+    --section-edge: rgb(255 255 255 / 0.07);
+  }
+  .dark [data-elevated] {
+    --grouped: #262626;
+    --grouped-secondary: #303030;
+    --grouped-tertiary: #3a3a3a;
+    --background: #262626;
+  }
+}
+
 /* Erişilebilirlik: Şeffaflığı azalt / Kontrastı artır */
 @media (prefers-reduced-transparency: reduce) {
   :root {
@@ -440,6 +560,13 @@
   &:active:not(:disabled, [aria-disabled="true"]) {
     transform: scale(0.96);
     transition-duration: 0.12s;
+  }
+  /* macOS: fareyle basınca küçülmez, hafifçe kararır */
+  @media (pointer: fine) {
+    &:active:not(:disabled, [aria-disabled="true"]) {
+      transform: none;
+      filter: brightness(0.9);
+    }
   }
 }
 /* Dokunulabilir liste satırı: basılınca gri vurgu (UITableView seçimi). */

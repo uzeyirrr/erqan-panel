@@ -309,7 +309,7 @@ function NotificationRow({
           type="button"
           onClick={onOpen}
           className={cn(
-            "press-row flex min-h-11 w-full items-center gap-3 pl-3 pr-4 text-left outline-none focus-visible:bg-fill-quaternary",
+            "press-row flex min-h-11 w-full items-center gap-3 pl-3 pr-4 text-left outline-none focus-visible:bg-fill-quaternary desk:min-h-9 desk:pr-3",
             drag !== null && "bg-transparent!",
           )}
         >

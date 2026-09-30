@@ -82,7 +82,7 @@ function CheckRow({
 }) {
   return (
     <li data-slot="list-row" className="group/row relative">
-      <label className="press-row flex min-h-11 w-full cursor-pointer items-center gap-3 px-4">
+      <label className="press-row flex min-h-11 w-full cursor-pointer items-center gap-3 px-4 desk:min-h-9 desk:px-3">
         {leading}
         <span className="relative flex min-w-0 flex-1 items-center gap-3 self-stretch py-[11px] after:hairline after:absolute after:bottom-0 after:left-0 after:-right-4 after:bg-separator group-last/row:after:hidden">
           <span className="min-w-0 flex-1 text-body text-label">{children}</span>

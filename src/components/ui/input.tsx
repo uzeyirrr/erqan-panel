@@ -13,6 +13,7 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
       className={cn(
         "h-11 w-full min-w-0 rounded-field bg-fill-tertiary px-4 text-body text-label caret-tint outline-none placeholder:text-label-tertiary",
         "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-tint/60",
+        "desk:h-7 desk:px-2.5 desk:focus-visible:outline-3 desk:focus-visible:outline-offset-0 desk:focus-visible:outline-tint/45",
         "disabled:pointer-events-none disabled:text-label-tertiary aria-invalid:outline-2 aria-invalid:-outline-offset-2 aria-invalid:outline-system-red",
         "file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-subheadline file:font-semibold file:text-tint",
         "[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [appearance:textfield]",

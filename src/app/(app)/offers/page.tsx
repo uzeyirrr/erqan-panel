@@ -218,7 +218,7 @@ function OfferRow({
   const isPending = offer.status === "pending"
   const href = prop ? `/properties/${prop.id}` : "#"
   return (
-    <li data-slot="list-row" className="group/row relative flex items-start gap-3 pl-4">
+    <li data-slot="list-row" className="group/row relative flex items-start gap-3 pl-4 desk:gap-2.5 desk:pl-3">
       <Link
         href={href}
         aria-hidden="true"

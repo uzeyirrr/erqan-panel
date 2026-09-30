@@ -73,7 +73,7 @@ function SettingRow({
   return (
     <li
       data-slot="list-row"
-      className="relative flex min-h-11 items-center gap-4 px-4 py-1 after:hairline after:absolute after:right-0 after:bottom-0 after:left-4 after:bg-separator last:after:hidden"
+      className="relative flex min-h-11 items-center gap-4 px-4 py-1 after:hairline after:absolute after:right-0 after:bottom-0 after:left-4 after:bg-separator last:after:hidden desk:min-h-9 desk:px-3 desk:after:left-3"
     >
       <label htmlFor={htmlFor} className="min-w-0 flex-1 cursor-pointer py-1.5">
         <span className="block text-body text-label">{label}</span>

@@ -96,30 +96,34 @@ export function PageHeader({
             scrolled ? "opacity-100" : "opacity-0",
           )}
         />
-        <div className="relative flex h-[52px] items-center gap-2 px-4 sm:px-6 lg:px-8">
+        <div className="relative flex h-[52px] items-center gap-2 px-4 sm:px-6 lg:px-8 desk:gap-1.5">
           {showBack && (
             <Button variant="glass" size="icon" aria-label="Geri" onClick={goBack}>
-              <CaretLeft weight="bold" className="size-5" />
+              <CaretLeft weight="bold" className="size-5 desk:size-4" />
             </Button>
           )}
-          {/* Küçük başlık: solda, Liquid Glass kapsül içinde; büyük başlık kaydırılınca belirir. */}
+          {/* Küçük başlık: solda, Liquid Glass kapsül içinde (macOS'ta düz pencere başlığı);
+              büyük başlık kaydırılınca belirir. */}
           <div
             className={cn(
               "glass flex h-11 min-w-0 items-center rounded-full px-4 transition-[opacity,scale] duration-200 ease-ios",
+              "desk:h-8 desk:bg-transparent desk:px-1.5 desk:shadow-none desk:[backdrop-filter:none]",
               collapsed ? "scale-100 opacity-100" : "pointer-events-none scale-95 opacity-0",
             )}
             aria-hidden={largeTitle}
           >
-            <span className="truncate text-headline text-label">{title}</span>
+            <span className="truncate text-headline text-label desk:text-[15px] desk:font-semibold">{title}</span>
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-2">{actions}</div>
         </div>
       </div>
       {largeTitle ? (
-        <header className={cn("mb-5 pt-1", className)}>
+        <header className={cn("mb-5 pt-1 desk:mb-6", className)}>
           <div ref={sentinel} />
           <h1 className="px-1 text-large-title text-label break-words">{title}</h1>
-          {description && <p className="mt-1 max-w-prose px-1 text-subheadline text-label-secondary">{description}</p>}
+          {description && (
+            <p className="mt-1 max-w-prose px-1 text-subheadline text-label-secondary desk:text-body">{description}</p>
+          )}
         </header>
       ) : (
         <h1 className="sr-only">{title}</h1>
@@ -130,7 +134,7 @@ export function PageHeader({
 
 /** Gezinme çubuğundaki Liquid Glass düğme grubu (birden çok simge tek kapsülde). */
 export function BarGroup({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("glass flex h-11 items-center rounded-full px-1", className)}>{children}</div>
+  return <div className={cn("glass flex h-11 items-center rounded-full px-1 desk:h-8 desk:px-0.5", className)}>{children}</div>
 }
 
 /** Gezinme çubuğu simge düğmesi (BarGroup içinde veya tek başına). */
@@ -151,12 +155,12 @@ export function BarButton({
   standalone?: boolean
 }) {
   const cls = cn(
-    "relative flex size-9 items-center justify-center rounded-full text-label outline-none press-dim focus-visible:outline-2",
-    standalone && "glass size-11",
+    "relative flex size-9 items-center justify-center rounded-full text-label outline-none press-dim focus-visible:outline-2 desk:size-7",
+    standalone && "glass size-11 desk:size-8",
   )
   const content = (
     <>
-      <Icon className="size-[22px]" />
+      <Icon className="size-[22px] desk:size-[17px]" />
       {!!badge && (
         <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-system-red px-1 text-caption2 font-semibold text-white tabular-nums">
           {badge > 99 ? "99+" : badge}
@@ -205,18 +209,36 @@ export function Section({
   return (
     <section className={cn("min-w-0", className)}>
       {(header || actions) && (
-        <div className="mb-1.5 flex min-h-6 items-end justify-between gap-3 px-4">
-          {header && <h2 className="text-footnote font-semibold tracking-wide text-label-secondary uppercase">{header}</h2>}
-          {actions && <div className="text-subheadline">{actions}</div>}
+        <div className="mb-1.5 flex min-h-6 items-end justify-between gap-3 px-4 desk:mb-2 desk:min-h-5 desk:px-1">
+          {header && (
+            <h2 className="text-footnote font-semibold tracking-wide text-label-secondary uppercase desk:text-[13px] desk:font-bold desk:tracking-normal desk:text-label desk:normal-case">
+              {header}
+            </h2>
+          )}
+          {actions && <div className="text-subheadline desk:text-[13px]">{actions}</div>}
         </div>
       )}
       {plain ? (
-        <div className={cn("overflow-hidden rounded-section bg-grouped-secondary p-4", bodyClassName)}>{children}</div>
+        <div
+          className={cn(
+            "overflow-hidden rounded-section bg-grouped-secondary p-4 desk:p-3.5 desk:shadow-[0_0_0_0.5px_var(--section-edge)]",
+            bodyClassName,
+          )}
+        >
+          {children}
+        </div>
       ) : (
         // Üst ve alttaki boşluk, ilk/son satırın içeriğini yuvarlak köşelerden uzak tutar.
-        <ul className={cn("overflow-hidden rounded-section bg-grouped-secondary py-2.5", bodyClassName)}>{children}</ul>
+        <ul
+          className={cn(
+            "overflow-hidden rounded-section bg-grouped-secondary py-2.5 desk:py-1 desk:shadow-[0_0_0_0.5px_var(--section-edge)]",
+            bodyClassName,
+          )}
+        >
+          {children}
+        </ul>
       )}
-      {footer && <div className="mt-1.5 px-4 text-footnote text-label-secondary">{footer}</div>}
+      {footer && <div className="mt-1.5 px-4 text-footnote text-label-secondary desk:mt-2 desk:px-1 desk:text-[11px]">{footer}</div>}
     </section>
   )
 }
@@ -262,7 +284,7 @@ export function Row({
   const lead = leading ?? (icon ? <IconTile icon={icon} color={iconColor} /> : null)
   const acc =
     accessory === "none" ? null : accessory === "chevron" || (accessory === undefined && interactive && href) ? (
-      <CaretRight weight="bold" className="size-3.5 shrink-0 text-label-tertiary" />
+      <CaretRight weight="bold" className="size-3.5 shrink-0 text-label-tertiary desk:size-3" />
     ) : (
       accessory
     )
@@ -270,7 +292,7 @@ export function Row({
   const body = (
     <>
       {lead}
-      <span className="relative flex min-w-0 flex-1 items-center gap-3 self-stretch py-[11px] after:hairline after:absolute after:bottom-0 after:left-0 after:-right-4 after:bg-separator group-last/row:after:hidden">
+      <span className="relative flex min-w-0 flex-1 items-center gap-3 self-stretch py-[11px] after:hairline after:absolute after:bottom-0 after:left-0 after:-right-4 after:bg-separator group-last/row:after:hidden desk:gap-2.5 desk:py-[7px] desk:after:-right-3">
         <span className="min-w-0 flex-1">
           {title && (
             <span className={cn("block text-body", destructive ? "text-system-red" : interactive && !href && !acc ? "text-tint" : "text-label")}>
@@ -289,7 +311,7 @@ export function Row({
   )
 
   const cls = cn(
-    "flex w-full min-h-11 items-center gap-3 px-4 text-left outline-none focus-visible:bg-fill-quaternary",
+    "flex w-full min-h-11 items-center gap-3 px-4 text-left outline-none focus-visible:bg-fill-quaternary desk:min-h-9 desk:gap-2.5 desk:px-3",
     interactive && "press-row cursor-pointer",
     disabled && "opacity-50",
     className,
@@ -317,7 +339,10 @@ export function RowItem({ children, className }: { children: React.ReactNode; cl
   return (
     <li
       data-slot="list-row"
-      className={cn("relative px-4 py-3 after:hairline after:absolute after:right-0 after:bottom-0 after:left-4 after:bg-separator last:after:hidden", className)}
+      className={cn(
+        "relative px-4 py-3 after:hairline after:absolute after:right-0 after:bottom-0 after:left-4 after:bg-separator last:after:hidden desk:px-3 desk:py-2 desk:after:left-3",
+        className,
+      )}
     >
       {children}
     </li>
@@ -358,12 +383,12 @@ export function IconTile({
       aria-hidden="true"
       className={cn(
         "flex shrink-0 items-center justify-center text-white",
-        size === "lg" ? "size-11 rounded-[12px]" : "size-[30px] rounded-[8px]",
+        size === "lg" ? "size-11 rounded-[12px] desk:size-9 desk:rounded-[9px]" : "size-[30px] rounded-[8px] desk:size-[22px] desk:rounded-[6px]",
         className,
       )}
       style={{ background: TILE[color] || color }}
     >
-      <Icon weight="fill" className={size === "lg" ? "size-6" : "size-[18px]"} />
+      <Icon weight="fill" className={size === "lg" ? "size-6 desk:size-5" : "size-[18px] desk:size-[14px]"} />
     </span>
   )
 }
@@ -436,7 +461,7 @@ export function Tag({ children, tone = "gray", className }: { children: React.Re
   return (
     <span
       className={cn(
-        "inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-caption1 font-semibold whitespace-nowrap",
+        "inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-caption1 font-semibold whitespace-nowrap desk:h-5 desk:px-2 desk:text-[11px]",
         TONE[tone],
         className,
       )}
@@ -510,7 +535,7 @@ export function Loading({ className }: { className?: string }) {
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div className="mb-5 flex items-start gap-3 rounded-section bg-grouped-secondary p-4">
+    <div className="mb-5 flex items-start gap-3 rounded-section bg-grouped-secondary p-4 desk:p-3 desk:shadow-[0_0_0_0.5px_var(--section-edge)]">
       <WarningCircle weight="fill" className="mt-0.5 size-6 shrink-0 text-system-red" />
       <div className="min-w-0 flex-1">
         <p className="text-subheadline text-label">{message}</p>
@@ -538,7 +563,12 @@ export function Notice({
 }) {
   const color = { gray: "text-label-secondary", red: "text-system-red", orange: "text-system-orange", tint: "text-tint" }[tone]
   return (
-    <div className={cn("flex items-start gap-3 rounded-section bg-grouped-secondary px-4 py-3.5 text-subheadline text-label", className)}>
+    <div
+      className={cn(
+        "flex items-start gap-3 rounded-section bg-grouped-secondary px-4 py-3.5 text-subheadline text-label desk:gap-2.5 desk:px-3 desk:py-2.5 desk:text-[13px] desk:shadow-[0_0_0_0.5px_var(--section-edge)]",
+        className,
+      )}
+    >
       {Icon && <Icon weight="fill" className={cn("mt-px size-5 shrink-0", color)} />}
       <div className="min-w-0 flex-1">{children}</div>
     </div>
@@ -591,11 +621,11 @@ export function FieldRow({
     <li
       data-slot="list-row"
       className={cn(
-        "relative flex min-h-11 items-center gap-4 px-4 after:hairline after:absolute after:right-0 after:bottom-0 after:left-4 after:bg-separator last:after:hidden",
+        "relative flex min-h-11 items-center gap-4 px-4 after:hairline after:absolute after:right-0 after:bottom-0 after:left-4 after:bg-separator last:after:hidden desk:min-h-9 desk:gap-3 desk:px-3 desk:after:left-3",
         className,
       )}
     >
-      <label htmlFor={htmlFor} className="shrink-0 py-[11px] text-body text-label">
+      <label htmlFor={htmlFor} className="shrink-0 py-[11px] text-body text-label desk:py-[7px]">
         {label}
       </label>
       <div className="flex min-w-0 flex-1 justify-end">{children}</div>
@@ -605,7 +635,7 @@ export function FieldRow({
 
 /** Satır içi (kenarsız, sağa yaslı) giriş alanı sınıfı. */
 export const inlineInput =
-  "h-11 rounded-none bg-transparent px-0 text-right focus-visible:outline-none placeholder:text-label-tertiary"
+  "h-11 rounded-none bg-transparent px-0 text-right focus-visible:outline-none placeholder:text-label-tertiary desk:h-8 desk:px-0 desk:focus-visible:outline-none"
 
 /**
  * Yerel <select>: iOS'ta sistem seçicisini açar. Varsayılan dolgulu açılır düğme;
@@ -622,15 +652,18 @@ export function NativeSelect({
         className={cn(
           "w-full min-w-0 cursor-pointer appearance-none truncate text-body outline-none disabled:cursor-not-allowed disabled:text-label-tertiary [&>option]:bg-grouped-secondary [&>option]:text-label",
           inline
-            ? "h-11 bg-transparent pr-6 text-right text-label-secondary [text-align-last:right] focus-visible:text-tint"
-            : "h-11 rounded-field bg-fill-tertiary pr-10 pl-4 text-label focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-tint/60",
+            ? "h-11 bg-transparent pr-6 text-right text-label-secondary [text-align-last:right] focus-visible:text-tint desk:h-8 desk:pr-5"
+            : "h-11 rounded-field bg-fill-tertiary pr-10 pl-4 text-label focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-tint/60 desk:h-7 desk:bg-fill-secondary desk:pr-7 desk:pl-2.5 desk:shadow-[0_0.5px_1px_rgb(0_0_0/0.12)]",
         )}
         {...props}
       />
       <CaretUpDown
         weight="bold"
         aria-hidden="true"
-        className={cn("pointer-events-none absolute size-4 text-label-tertiary", inline ? "right-0" : "right-3.5")}
+        className={cn(
+          "pointer-events-none absolute size-4 text-label-tertiary desk:size-3.5",
+          inline ? "right-0" : "right-3.5 desk:right-2",
+        )}
       />
     </span>
   )
@@ -648,15 +681,20 @@ export function SearchField({
   onChange: (v: string) => void
 }) {
   return (
-    <div className={cn("relative flex h-9 items-center rounded-[10px] bg-fill-tertiary text-label-secondary", className)}>
-      <MagnifyingGlass weight="bold" className="pointer-events-none absolute left-2.5 size-[17px]" />
+    <div
+      className={cn(
+        "relative flex h-9 items-center rounded-[10px] bg-fill-tertiary text-label-secondary desk:h-7 desk:rounded-full",
+        className,
+      )}
+    >
+      <MagnifyingGlass weight="bold" className="pointer-events-none absolute left-2.5 size-[17px] desk:size-3.5" />
       <input
         type="search"
         enterKeyHint="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-full w-full min-w-0 bg-transparent pr-8 pl-8 text-body text-label caret-tint outline-none placeholder:text-label-secondary [&::-webkit-search-cancel-button]:hidden"
+        className="h-full w-full min-w-0 bg-transparent pr-8 pl-8 text-body text-label caret-tint outline-none placeholder:text-label-secondary desk:pl-7 [&::-webkit-search-cancel-button]:hidden"
         {...props}
       />
       {value && (
@@ -702,7 +740,7 @@ export function Chips<T extends string>({
             aria-pressed={active}
             onClick={() => onChange(item.value)}
             className={cn(
-              "press-scale flex h-9 shrink-0 items-center gap-1.5 rounded-full px-4 text-subheadline font-medium whitespace-nowrap outline-none focus-visible:outline-2",
+              "press-scale flex h-9 shrink-0 items-center gap-1.5 rounded-full px-4 text-subheadline font-medium whitespace-nowrap outline-none focus-visible:outline-2 desk:h-7 desk:px-3 desk:text-[13px]",
               active ? "bg-tint text-tint-foreground" : "bg-grouped-secondary text-label shadow-card",
             )}
           >
@@ -754,11 +792,11 @@ export function ConfirmDialog({
         <AlertDialogTitle>{title}</AlertDialogTitle>
         {description && <AlertDialogDescription>{description}</AlertDialogDescription>}
         {children}
-        <div className={cn("mt-1 flex gap-2.5", stacked ? "flex-col" : "flex-row-reverse")}>
+        <div className={cn("mt-1 flex gap-2.5 desk:mt-1.5 desk:gap-2", stacked ? "flex-col" : "flex-row-reverse")}>
           <Button
             size="lg"
             variant={destructive ? "destructive" : "default"}
-            className={cn("h-12", stacked ? "w-full" : "flex-1")}
+            className={cn("h-12 desk:h-7 desk:text-[13px]", stacked ? "w-full" : "flex-1")}
             disabled={pending}
             onClick={async () => {
               const res = await onConfirm()
@@ -770,7 +808,9 @@ export function ConfirmDialog({
           </Button>
           <AlertDialogClose
             disabled={pending}
-            render={<Button size="lg" variant="secondary" className={cn("h-12 text-label", stacked ? "w-full" : "flex-1")} />}
+            render={
+              <Button size="lg" variant="secondary" className={cn("h-12 text-label desk:h-7 desk:text-[13px]", stacked ? "w-full" : "flex-1")} />
+            }
           >
             {cancelLabel}
           </AlertDialogClose>

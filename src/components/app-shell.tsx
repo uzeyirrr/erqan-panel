@@ -2,13 +2,13 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ViewTransition, useEffect, useLayoutEffect, useRef } from "react"
+import { ViewTransition, useEffect, useLayoutEffect, useRef, useState } from "react"
 import { Wrench } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 import { money } from "@/lib/format"
 import { useApp } from "@/components/app-provider"
 import { AppIcon } from "@/components/brand"
-import { Avatar, EmptyState, Loading } from "@/components/kit"
+import { Avatar, EmptyState, IconTile, Loading, SearchField } from "@/components/kit"
 import { EdgeSwipeBack, skipNextNavAnimation } from "@/components/edge-swipe-back"
 import { PullToRefresh } from "@/components/pull-to-refresh"
 import { ADMIN, MORE, TABS, isActive, isTabRoot, navStack, tabOf, type NavItem } from "@/components/nav"
@@ -76,73 +76,118 @@ function TabBar({ pathname }: { pathname: string }) {
 }
 
 function SidebarLink({ item, pathname, badge }: { item: NavItem; pathname: string; badge?: number }) {
-  const active = isActive(pathname, item.href) && !(item.href === "/account" && pathname !== "/account")
-  const Icon = item.icon
+  const active = isActive(pathname, item.href)
   return (
     <li>
       <Link
         href={item.href}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "flex h-10 items-center gap-3 rounded-[12px] px-3 text-body outline-none transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2",
-          active ? "bg-fill-tertiary font-semibold text-tint" : "text-label hover:bg-fill-quaternary active:bg-fill-tertiary",
+          "flex h-11 items-center gap-3 rounded-[12px] px-2 text-body outline-none focus-visible:outline-2 focus-visible:-outline-offset-2",
+          "desk:h-7 desk:gap-2 desk:rounded-[7px] desk:px-1.5",
+          active ? "bg-tint font-semibold text-tint-foreground" : "text-label hover:bg-fill-quaternary active:bg-fill-tertiary desk:hover:bg-transparent",
         )}
       >
-        <Icon weight={active ? "fill" : "regular"} className={cn("size-[22px] shrink-0", !active && "text-tint")} />
+        <IconTile icon={item.icon} color={item.color} className="desk:size-5 desk:rounded-[5px]" />
         <span className="min-w-0 flex-1 truncate">{item.label}</span>
-        {!!badge && <Badge n={badge} />}
+        {!!badge && <Badge n={badge} className={cn(active && "bg-white text-tint")} />}
       </Link>
     </li>
   )
 }
 
+function SidebarGroup({ title, children }: { title?: string; children: React.ReactNode }) {
+  return (
+    <>
+      {title && (
+        <div className="mt-5 mb-1 px-2 text-footnote font-semibold text-label-secondary desk:mt-4 desk:mb-0.5 desk:px-1.5 desk:text-[11px] desk:text-label-tertiary">
+          {title}
+        </div>
+      )}
+      <ul className="grid gap-0.5 desk:gap-px">{children}</ul>
+    </>
+  )
+}
+
+/**
+ * iPadOS / macOS Ayarlar kenar çubuğu: arama, hesap satırı ve renkli simgeli bölümler.
+ * Seçili öğe vurgu renginde. macOS'ta (desk) daha dar ve yoğun.
+ */
 function Sidebar({ pathname }: { pathname: string }) {
   const { user, unread, isAdmin, currency, config } = useApp()
+  const [query, setQuery] = useState("")
   const main = TABS.filter((t) => t.href !== "/account")
+  const badgeOf = (item: NavItem) => (item.href === "/notifications" ? unread : 0)
+  const q = query.trim().toLocaleLowerCase("tr-TR")
+  const results = q
+    ? [...main, ...MORE, ...(isAdmin ? ADMIN : [])].filter((i) => i.label.toLocaleLowerCase("tr-TR").includes(q))
+    : null
+  const accountActive = pathname === "/account"
+
   return (
-    <aside className="glass-thick fixed inset-y-2 left-2 z-30 hidden w-[304px] flex-col overflow-hidden rounded-[26px] [view-transition-name:sidebar] lg:flex">
-      <div className="px-5 pt-6 pb-3">
-        <Link href="/dashboard" className="flex items-center gap-3 text-title1 text-label outline-none">
-          <AppIcon className="size-9 shadow-none" />
+    <aside className="glass-thick fixed inset-y-2 left-2 z-30 hidden w-[304px] flex-col overflow-hidden rounded-[26px] [view-transition-name:sidebar] lg:flex desk:w-[260px] desk:rounded-[18px]">
+      <div className="px-4 pt-5 pb-3 desk:px-3 desk:pt-4 desk:pb-2">
+        <Link href="/dashboard" className="flex items-center gap-2.5 px-1 text-title2 text-label outline-none desk:gap-2 desk:text-[13px] desk:font-semibold">
+          <AppIcon className="size-8 shadow-none desk:size-5 desk:rounded-[5px]" />
           {config?.general.site_name || "Erqan"}
         </Link>
+        <SearchField value={query} onChange={setQuery} aria-label="Menüde ara" className="mt-3 desk:mt-2.5" />
       </div>
-      <nav aria-label="Ana menü" className="flex-1 overflow-y-auto px-3 pb-3">
-        <ul className="grid gap-0.5">
-          {main.map((item) => (
-            <SidebarLink key={item.href} item={item} pathname={pathname} />
-          ))}
-        </ul>
-        <div className="mt-5 mb-1 px-3 text-footnote font-semibold text-label-secondary">Hesap</div>
-        <ul className="grid gap-0.5">
-          {MORE.map((item) => (
-            <SidebarLink key={item.href} item={item} pathname={pathname} badge={item.href === "/notifications" ? unread : 0} />
-          ))}
-        </ul>
-        {isAdmin && (
+      <nav aria-label="Ana menü" className="flex-1 overflow-y-auto px-3 pb-3 desk:px-2.5">
+        {results ? (
+          results.length ? (
+            <SidebarGroup>
+              {results.map((item) => (
+                <SidebarLink key={item.href} item={item} pathname={pathname} badge={badgeOf(item)} />
+              ))}
+            </SidebarGroup>
+          ) : (
+            <p className="px-2 py-6 text-center text-subheadline text-label-secondary">Sonuç yok</p>
+          )
+        ) : (
           <>
-            <div className="mt-5 mb-1 px-3 text-footnote font-semibold text-label-secondary">Yönetim</div>
-            <ul className="grid gap-0.5">
-              {ADMIN.map((item) => (
+            {/* Hesap satırı (Ayarlar'daki Apple Hesabı satırı gibi) */}
+            <Link
+              href="/account"
+              aria-current={accountActive ? "page" : undefined}
+              className={cn(
+                "mb-3 flex items-center gap-3 rounded-[14px] p-2 outline-none focus-visible:outline-2 desk:mb-2 desk:gap-2.5 desk:rounded-[8px] desk:p-1.5",
+                accountActive ? "bg-tint text-tint-foreground" : "hover:bg-fill-quaternary active:bg-fill-tertiary desk:hover:bg-transparent",
+              )}
+            >
+              <Avatar name={user?.name || user?.email} className="size-11 desk:size-8 desk:text-[13px]" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-headline">{user?.name || "Hesabım"}</span>
+                <span
+                  className={cn(
+                    "block truncate text-footnote tabular-nums desk:text-[11px]",
+                    accountActive ? "text-tint-foreground/80" : "text-label-secondary",
+                  )}
+                >
+                  {money(user?.credit, currency)}
+                </span>
+              </span>
+            </Link>
+            <SidebarGroup>
+              {main.map((item) => (
                 <SidebarLink key={item.href} item={item} pathname={pathname} />
               ))}
-            </ul>
+            </SidebarGroup>
+            <SidebarGroup title="Hesap">
+              {MORE.map((item) => (
+                <SidebarLink key={item.href} item={item} pathname={pathname} badge={badgeOf(item)} />
+              ))}
+            </SidebarGroup>
+            {isAdmin && (
+              <SidebarGroup title="Yönetim">
+                {ADMIN.map((item) => (
+                  <SidebarLink key={item.href} item={item} pathname={pathname} />
+                ))}
+              </SidebarGroup>
+            )}
           </>
         )}
       </nav>
-      <Link
-        href="/account"
-        className={cn(
-          "mx-3 mb-3 flex items-center gap-3 rounded-[16px] p-2.5 outline-none transition-colors hover:bg-fill-quaternary active:bg-fill-tertiary focus-visible:outline-2",
-          pathname === "/account" && "bg-fill-tertiary",
-        )}
-      >
-        <Avatar name={user?.name || user?.email} />
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-subheadline font-semibold text-label">{user?.name || "Hesabım"}</span>
-          <span className="block truncate text-footnote text-label-secondary tabular-nums">{money(user?.credit, currency)}</span>
-        </span>
-      </Link>
     </aside>
   )
 }
@@ -265,7 +310,7 @@ export function AppShell({ children, admin }: { children: React.ReactNode; admin
   }
 
   return (
-    <div className="min-h-dvh px-safe lg:pl-[320px]">
+    <div className="min-h-dvh px-safe lg:pl-[320px] desk:pl-[276px]">
       <Sidebar pathname={pathname} />
       {config?.general.maintenance && isAdmin && (
         <div className="bg-system-orange px-4 py-2 pt-[calc(env(safe-area-inset-top)+0.5rem)] text-center text-footnote font-semibold text-white">

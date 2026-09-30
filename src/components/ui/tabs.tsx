@@ -14,7 +14,7 @@ function TabsList({ className, children, ...props }: TabsPrimitive.List.Props) {
   return (
     <TabsPrimitive.List
       data-slot="tabs-list"
-      className={cn("relative isolate flex h-9 w-full items-stretch rounded-full bg-fill-tertiary p-0.5 sm:w-fit", className)}
+      className={cn("relative isolate flex h-9 w-full items-stretch rounded-full bg-fill-tertiary p-0.5 sm:w-fit desk:h-7", className)}
       {...props}
     >
       <TabsPrimitive.Indicator
@@ -31,7 +31,7 @@ function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
     <TabsPrimitive.Tab
       data-slot="tabs-trigger"
       className={cn(
-        "relative inline-flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full px-4 text-subheadline font-medium whitespace-nowrap text-label outline-none transition-opacity select-none",
+        "relative inline-flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full px-4 text-subheadline font-medium whitespace-nowrap text-label outline-none transition-opacity select-none desk:px-3 desk:text-[13px]",
         "focus-visible:outline-2 focus-visible:-outline-offset-2 data-active:font-semibold active:opacity-60 data-active:active:opacity-100",
         "disabled:pointer-events-none disabled:text-label-tertiary [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
